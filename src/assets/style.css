@@ -271,4 +271,10 @@ p{color:var(--gray)}
   .menu.open{max-height:480px}
   .menu li{width:100%;border-top:1px solid rgba(125,125,125,.12)}
   .menu a{display:block;padding:16px 28px}
-  .menu a::after{displa
+  .menu a::after{display:none}
+}
+@media(max-width:560px){
+  body{font-size:16px}
+  .btn{width:100%;text-align:center}
+  .btn-row{flex-direction:column}
+}
