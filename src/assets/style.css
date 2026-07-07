@@ -169,7 +169,8 @@ p{color:var(--gray)}
   aspect-ratio:16/10;background:var(--green-light);
   display:flex;align-items:center;justify-content:center;
   color:var(--white);font-family:var(--serif);font-style:italic;
-  opacity:.8;font-size:.9rem;
+  opacity:.9;font-size:1.05rem;line-height:1.35;
+  text-align:center;padding:20px 24px;
 }
 .post-body{padding:26px 26px 30px;flex:1;display:flex;flex-direction:column}
 .post-body .meta{font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
@@ -271,10 +272,4 @@ p{color:var(--gray)}
   .menu.open{max-height:480px}
   .menu li{width:100%;border-top:1px solid rgba(125,125,125,.12)}
   .menu a{display:block;padding:16px 28px}
-  .menu a::after{display:none}
-}
-@media(max-width:560px){
-  body{font-size:16px}
-  .btn{width:100%;text-align:center}
-  .btn-row{flex-direction:column}
-}
+  .menu a::after{displa
