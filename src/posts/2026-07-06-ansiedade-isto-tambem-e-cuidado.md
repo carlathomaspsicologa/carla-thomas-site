@@ -2,6 +2,7 @@
 title: "Ansiedade: isto também é cuidado"
 date: 2026-07-06
 resumo: "Entenda por que a ansiedade existe, como ela aparece no corpo e na mente, e o que realmente ajuda a lidar com ela no dia a dia."
+capa: "/assets/img/blog/ansiedade.jpg"
 ---
 
 Se o seu coração já acelerou sem motivo aparente, ou a sua mente já girou em pensamentos que não paravam — isto também é o seu corpo tentando cuidar de você. Não é defeito. É um mecanismo antigo, só que às vezes ele exagera.

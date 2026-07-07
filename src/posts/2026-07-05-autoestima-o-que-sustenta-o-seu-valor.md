@@ -2,6 +2,7 @@
 title: "Autoestima: o que sustenta o seu valor"
 date: 2026-07-05
 resumo: "Autoestima não é vaidade nem excesso de confiança. Entenda o que realmente a sustenta e como começar a fortalecê-la."
+capa: "/assets/img/blog/autoestima.jpg"
 ---
 
 Autoestima é um dos temas mais mal-entendidos da psicologia popular. Muita gente pensa nela como sinônimo de vaidade, ou como aquele tipo de confiança que "algumas pessoas têm e outras não". Mas autoestima é outra coisa: **é a forma como você avalia o seu próprio valor**, independentemente do que os outros pensam ou do que você conquistou.

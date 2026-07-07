@@ -2,6 +2,7 @@
 title: "Depressão: quando a tristeza não passa"
 date: 2026-07-07
 resumo: "Entenda a diferença entre tristeza e depressão, como o ciclo da depressão se mantém, e por que pequenos passos são o caminho para sair dele."
+capa: "/assets/img/blog/depressao.jpg"
 ---
 
 Todo mundo fica triste em algum momento. Perdas, decepções e fases difíceis fazem parte da vida, e a tristeza que vem com elas costuma diminuir com o tempo e o apoio das pessoas ao redor. A depressão é outra coisa: **é quando esse estado se instala, se estende por semanas, e passa a afetar o sono, o apetite, a energia e a capacidade de sentir prazer** nas coisas que antes importavam.
