@@ -16,7 +16,7 @@ resumo: "Artigos de Carla Thomas sobre ansiedade, emoções e saúde mental."
     <div class="posts">
       {% for post in collections.post %}
       <article class="post">
-        <div class="post-thumb"{% if post.data.capa %} style="background-image:url('{{ post.data.capa }}');background-size:cover;background-position:center"{% endif %}>{% if not post.data.capa %}Carla Thomas{% endif %}</div>
+        <div class="post-thumb"{% if post.data.capa %} style="background-image:url('{{ post.data.capa }}');background-size:cover;background-position:center"{% endif %}>{% if not post.data.capa %}{{ post.data.title }}{% endif %}</div>
         <div class="post-body">
           <span class="meta">{{ post.date | dataBR }}</span>
           <h3>{{ post.data.title }}</h3>
