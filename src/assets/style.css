@@ -177,6 +177,24 @@ p{color:var(--gray)}
 .post-body h3{font-size:1.15rem;margin-bottom:10px}
 .post-body .more{margin-top:auto;font-size:.78rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--green)}
 
+/* ---------- Conteúdo do artigo ---------- */
+.post-content{font-size:1.05rem;line-height:1.85}
+.post-content p{margin-bottom:24px;text-align:justify;hyphens:auto}
+.post-content p:last-child{margin-bottom:0}
+.post-content p:has(> strong:only-child){
+  margin-top:40px;margin-bottom:16px;
+  font-family:var(--serif);font-style:normal;font-size:1.2rem;color:var(--ink);
+  text-align:left;
+}
+.post-content p:has(> strong:only-child):first-child{margin-top:0}
+.post-content strong{color:var(--ink);font-weight:700}
+.post-content em{font-style:italic;color:var(--ink)}
+.post-content ul,.post-content ol{margin:0 0 24px 22px}
+.post-content li{margin-bottom:12px;color:var(--gray)}
+.post-content li:last-child{margin-bottom:0}
+.post-content li strong{color:var(--ink)}
+.post-content a{color:var(--green);font-weight:600;text-decoration:underline}
+
 /* ---------- Contato / Formulário ---------- */
 .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(36px,6vw,64px)}
 .contact-info p{margin-bottom:10px}
