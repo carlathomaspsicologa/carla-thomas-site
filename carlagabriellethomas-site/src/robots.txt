@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /obrigado.html
+Disallow: /obrigado-ebook.html
+
+Sitemap: https://carlagabriellethomas.com/sitemap.xml
