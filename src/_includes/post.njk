@@ -1,11 +1,11 @@
 ---
 layout: base.njk
 ---
-<article class="section">
+<article class="section editorial">
   <div class="wrap" style="max-width:760px">
     <p class="kicker">Blog{% if date %} · {{ date | dataBR }}{% endif %}</p>
     <h1>{{ title }}</h1>
-    {% if capa %}<img src="{{ capa }}" alt="{{ title }}" style="width:100%;border-radius:6px;box-shadow:var(--shadow);margin:24px 0">{% endif %}
+    <p class="post-meta-line">{{ categoria }}<span class="dot">·</span>{{ tempoLeitura }} de leitura</p>
     <div class="post-content">
       {{ content | safe }}
     </div>
