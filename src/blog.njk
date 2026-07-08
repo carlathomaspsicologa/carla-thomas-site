@@ -4,25 +4,22 @@ permalink: blog.html
 title: Blog
 resumo: "Artigos de Carla Thomas sobre ansiedade, emoções e saúde mental."
 ---
-<section class="page-hero wrap">
+<section class="page-hero wrap editorial">
   <p class="kicker">Blog</p>
   <h1>Artigos Recentes</h1>
   <p class="lead">Reflexões sobre ansiedade, emoções e os momentos de mudança — em uma linguagem simples, acolhedora e baseada em evidências.</p>
 </section>
 
-<section class="section" style="padding-top:0">
+<section class="section editorial" style="padding-top:0">
   <div class="wrap">
     {% if collections.post.length %}
-    <div class="posts">
+    <div class="posts-editorial">
       {% for post in collections.post %}
-      <article class="post">
-        <div class="post-thumb"{% if post.data.capa %} style="background-image:url('{{ post.data.capa }}');background-size:cover;background-position:center"{% endif %}>{% if not post.data.capa %}{{ post.data.title }}{% endif %}</div>
-        <div class="post-body">
-          <span class="meta">{{ post.date | dataBR }}</span>
-          <h3>{{ post.data.title }}</h3>
-          <p>{{ post.data.resumo }}</p>
-          <a class="more" href="{{ post.url }}">Ler artigo →</a>
-        </div>
+      <article class="post-entry">
+        <p class="post-entry-meta">{{ post.data.categoria }}<span class="dot">·</span>{{ post.data.tempoLeitura }} de leitura</p>
+        <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
+        <p>{{ post.data.resumo }}</p>
+        <a class="more" href="{{ post.url }}">Ler artigo →</a>
       </article>
       {% endfor %}
     </div>
