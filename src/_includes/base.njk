@@ -5,6 +5,34 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% if title %}{{ title }} — Carla Thomas{% else %}Carla Thomas — Psicóloga{% endif %}</title>
 {% if resumo %}<meta name="description" content="{{ resumo }}">{% endif %}
+<link rel="canonical" href="https://carlagabriellethomas.com{{ page.url }}">
+<meta property="og:type" content="{% if categoria %}article{% else %}website{% endif %}">
+<meta property="og:title" content="{% if title %}{{ title }}{% else %}Carla Thomas — Psicóloga{% endif %}">
+{% if resumo %}<meta property="og:description" content="{{ resumo }}">{% endif %}
+<meta property="og:url" content="https://carlagabriellethomas.com{{ page.url }}">
+<meta property="og:image" content="https://carlagabriellethomas.com/assets/img/carla-hero.jpg">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="Carla Thomas — Psicóloga">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{% if title %}{{ title }}{% else %}Carla Thomas — Psicóloga{% endif %}">
+{% if resumo %}<meta name="twitter:description" content="{{ resumo }}">{% endif %}
+<meta name="twitter:image" content="https://carlagabriellethomas.com/assets/img/carla-hero.jpg">
+{% if categoria %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{{ title }}",
+  "description": "{{ resumo }}",
+  "datePublished": "{{ date | dataISO }}",
+  "author": { "@type": "Person", "name": "Carla Gabrielle Thomas", "jobTitle": "Psicóloga" },
+  "publisher": { "@type": "Person", "name": "Carla Gabrielle Thomas" },
+  "mainEntityOfPage": "https://carlagabriellethomas.com{{ page.url }}",
+  "articleSection": "{{ categoria }}",
+  "inLanguage": "pt-BR"
+}
+</script>
+{% endif %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
