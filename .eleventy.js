@@ -6,6 +6,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ "src/assets": "assets" });
   eleventyConfig.addPassthroughCopy({ "src/admin": "admin" });
   eleventyConfig.addPassthroughCopy({ "src/robots.txt": "robots.txt" });
+  eleventyConfig.addPassthroughCopy({ "src/sitemap.xml": "sitemap.xml" });
 
   // Páginas estáticas (mantidas exatamente como estão)
   const paginas = [
@@ -29,6 +30,13 @@ module.exports = function (eleventyConfig) {
       return new Date(d).toLocaleDateString("pt-BR", {
         day: "2-digit", month: "long", year: "numeric"
       });
+    } catch (e) { return ""; }
+  });
+
+  // Filtro de data ISO (para SEO / dados estruturados)
+  eleventyConfig.addFilter("dataISO", function (d) {
+    try {
+      return new Date(d).toISOString().slice(0, 10);
     } catch (e) { return ""; }
   });
 
