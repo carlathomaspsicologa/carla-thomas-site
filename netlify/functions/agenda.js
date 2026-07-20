@@ -13,6 +13,18 @@ function checkAuth(event) {
   return esperado.length > 0 && senha === esperado;
 }
 
+function debugInfo(event) {
+  const senha = event.headers["x-admin-password"] || "";
+  const esperado = process.env.ADMIN_PASSWORD || "";
+  return {
+    recebidoLength: senha.length,
+    esperadoLength: esperado.length,
+    esperadoDefinido: esperado.length > 0,
+    recebidoTrim: senha.trim().length,
+    esperadoTrim: esperado.trim().length,
+  };
+}
+
 function json(status, body) {
   return {
     statusCode: status,
@@ -35,7 +47,11 @@ exports.handler = async function (event) {
   }
 
   if (!checkAuth(event)) {
-    return json(401, { erro: "Senha inválida ou não configurada." });
+    const resp = { erro: "Senha inválida ou não configurada." };
+    if ((event.queryStringParameters || {}).debug === "1") {
+      resp.debug = debugInfo(event);
+    }
+    return json(401, resp);
   }
 
   const store = getStore(STORE_NAME);
