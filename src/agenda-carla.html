@@ -110,7 +110,15 @@ async function entrar(){
     carregarPix();
     await carregar();
   } else {
-    document.getElementById("login-erro").textContent = "Senha incorreta.";
+    let detalhe = "";
+    try{
+      const dbg = await fetch(API + "?debug=1", { headers: headers() });
+      const info = await dbg.json();
+      if(info.debug){
+        detalhe = ` (você digitou ${info.debug.recebidoLength} caractere(s); a senha salva no Netlify tem ${info.debug.esperadoLength} caractere(s))`;
+      }
+    }catch(e){}
+    document.getElementById("login-erro").textContent = "Senha incorreta." + detalhe;
   }
 }
 
