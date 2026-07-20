@@ -110,19 +110,19 @@ async function entrar(){
     carregarPix();
     await carregar();
   } else {
-    let detalhe = ` [status ${res.status}]`;
+    let detalhe = " [status " + res.status + "]";
     try{
       const dbg = await fetch(API + "?debug=1", { headers: headers() });
       const bodyText = await dbg.text();
       let info = null;
       try{ info = JSON.parse(bodyText); }catch(parseErr){}
       if(info && info.debug){
-        detalhe = ` (você digitou ${info.debug.recebidoLength} caractere(s); a senha salva no Netlify tem ${info.debug.esperadoLength} caractere(s))`;
+        detalhe = " (você digitou " + info.debug.recebidoLength + " caractere(s); a senha salva no Netlify tem " + info.debug.esperadoLength + " caractere(s))";
       } else {
-        detalhe = ` [debug status ${dbg.status}: ${bodyText.slice(0,120)}]`;
+        detalhe = " [debug status " + dbg.status + ": " + bodyText.slice(0,120) + "]";
       }
     }catch(e){
-      detalhe = ` [erro no debug: ${String(e).slice(0,120)}]`;
+      detalhe = " [erro no debug: " + String(e).slice(0,120) + "]";
     }
     document.getElementById("login-erro").textContent = "Senha incorreta." + detalhe;
   }
@@ -170,9 +170,9 @@ async function remover(id){
 
 function confirmarWhats(c){
   const dataFmt = c.data ? c.data.split("-").reverse().join("/") : "";
-  const msg = `Olá, ${c.paciente}! Confirmando sua consulta no dia ${dataFmt} às ${c.hora}. Qualquer imprevisto, me avise por aqui. Com carinho, Carla.`;
+  const msg = "Olá, " + c.paciente + "! Confirmando sua consulta no dia " + dataFmt + " às " + c.hora + ". Qualquer imprevisto, me avise por aqui. Com carinho, Carla.";
   const tel = (c.telefone || "").replace(/\D/g,"");
-  const url = `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
+  const url = "https://wa.me/55" + tel + "?text=" + encodeURIComponent(msg);
   window.open(url, "_blank");
 }
 
@@ -196,13 +196,11 @@ function render(){
   consultas.forEach(c => {
     const dataFmt = c.data ? c.data.split("-").reverse().join("/") : "";
     const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${dataFmt} ${c.hora||""}</td>
-      <td>${c.paciente}${c.observacoes ? '<br><small style="color:var(--gray)">'+c.observacoes+'</small>' : ''}</td>
-      <td>R$ ${(Number(c.valor)||0).toFixed(2)}</td>
-      <td><span class="badge badge--${c.status}">${c.status}</span></td>
-      <td><div class="row-actions"></div></td>
-    `;
+    tr.innerHTML = "<td>" + dataFmt + " " + (c.hora||"") + "</td>" +
+      "<td>" + c.paciente + (c.observacoes ? '<br><small style="color:var(--gray)">'+c.observacoes+'</small>' : '') + "</td>" +
+      "<td>R$ " + (Number(c.valor)||0).toFixed(2) + "</td>" +
+      "<td><span class=\"badge badge--" + c.status + "\">" + c.status + "</span></td>" +
+      "<td><div class=\"row-actions\"></div></td>";
     const actions = tr.querySelector(".row-actions");
 
     if(c.telefone){
@@ -240,8 +238,19 @@ function salvarPix(){
 function carregarPix(){
   const v = localStorage.getItem("agenda_pix") || "";
   document.getElementById("pix-input").value = v;
-  document.getElementById("pix-display").innerHTML = v ? `<div class="pix-box">${v}</div>` : "";
+  document.getElementById("pix-display").innerHTML = v ? '<div class="pix-box">' + v + '</div>' : "";
 }
 
 if(senha){
-  fetch(API
+  fetch(API, { headers: headers() }).then(res => {
+    if(res.status === 200){
+      document.getElementById("login-gate").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      carregarPix();
+      carregar();
+    }
+  });
+}
+</script>
+</body>
+</html>
