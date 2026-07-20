@@ -110,14 +110,20 @@ async function entrar(){
     carregarPix();
     await carregar();
   } else {
-    let detalhe = "";
+    let detalhe = ` [status ${res.status}]`;
     try{
       const dbg = await fetch(API + "?debug=1", { headers: headers() });
-      const info = await dbg.json();
-      if(info.debug){
+      const bodyText = await dbg.text();
+      let info = null;
+      try{ info = JSON.parse(bodyText); }catch(parseErr){}
+      if(info && info.debug){
         detalhe = ` (você digitou ${info.debug.recebidoLength} caractere(s); a senha salva no Netlify tem ${info.debug.esperadoLength} caractere(s))`;
+      } else {
+        detalhe = ` [debug status ${dbg.status}: ${bodyText.slice(0,120)}]`;
       }
-    }catch(e){}
+    }catch(e){
+      detalhe = ` [erro no debug: ${String(e).slice(0,120)}]`;
+    }
     document.getElementById("login-erro").textContent = "Senha incorreta." + detalhe;
   }
 }
@@ -238,15 +244,4 @@ function carregarPix(){
 }
 
 if(senha){
-  fetch(API, { headers: headers() }).then(res => {
-    if(res.status === 200){
-      document.getElementById("login-gate").style.display = "none";
-      document.getElementById("app").style.display = "block";
-      carregarPix();
-      carregar();
-    }
-  });
-}
-</script>
-</body>
-</html>
+  fetch(API
