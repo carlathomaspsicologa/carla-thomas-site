@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /obrigado.html
 Disallow: /obrigado-ebook.html
+Disallow: /agenda-carla.html
 
 Sitemap: https://carlagabriellethomas.com/sitemap.xml

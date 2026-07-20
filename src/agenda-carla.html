@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Agenda — Carla Thomas</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  body{background:var(--bg-soft)}
+  .panel-wrap{max-width:980px;margin:0 auto;padding:40px 20px 80px}
+  .panel-card{background:var(--white);border:1px solid rgba(125,125,125,.16);border-radius:8px;padding:28px;margin-bottom:24px}
+  .panel-card h2{font-size:1.3rem;margin-bottom:18px}
+  table{width:100%;border-collapse:collapse;font-size:.92rem}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid rgba(125,125,125,.14);vertical-align:middle}
+  th{font-family:var(--sans);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--gray)}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:600}
+  .badge--pendente{background:#f3e3c9;color:#8a6a20}
+  .badge--pago{background:#dbe8dc;color:var(--green)}
+  .badge--cancelado{background:#f0dcdc;color:#a13a3a}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+  .btn-sm{font-size:.72rem;padding:8px 12px;border-radius:4px;border:1px solid rgba(125,125,125,.3);background:var(--white);cursor:pointer;font-family:var(--sans);font-weight:600}
+  .btn-sm:hover{border-color:var(--green);color:var(--green)}
+  .btn-sm--whats{background:#25D366;border-color:#25D366;color:#fff}
+  .btn-sm--pago{background:var(--green);border-color:var(--green);color:#fff}
+  .btn-sm--del{color:#a13a3a}
+  .summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .summary-item{text-align:center;padding:16px;background:var(--bg-soft);border-radius:6px}
+  .summary-item .num{font-family:var(--serif);font-size:1.6rem;color:var(--green)}
+  .summary-item .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gray);margin-top:4px}
+  .grid-form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  #login-gate{max-width:400px;margin:100px auto;text-align:center}
+  #app{display:none}
+  .pix-box{background:var(--bg-soft);padding:14px 18px;border-radius:6px;font-family:monospace;font-size:.9rem;word-break:break-all}
+</style>
+</head>
+<body>
+
+<div id="login-gate" class="panel-card">
+  <h2>Painel de Agenda</h2>
+  <p style="margin-bottom:16px;color:var(--gray)">Área privada. Digite a senha de administração.</p>
+  <div class="field"><input id="senha-input" type="password" placeholder="Senha"></div>
+  <button class="btn btn--primary" style="width:100%;margin-top:10px" onclick="entrar()">Entrar</button>
+  <p id="login-erro" style="color:#a13a3a;margin-top:12px;font-size:.85rem"></p>
+</div>
+
+<div id="app" class="panel-wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:30px 0 10px">
+    <h1 style="font-size:1.8rem">Agenda &amp; Financeiro</h1>
+    <button class="btn-sm" onclick="sair()">Sair</button>
+  </div>
+
+  <div class="panel-card">
+    <h2>Resumo do mês</h2>
+    <div class="summary-grid">
+      <div class="summary-item"><div class="num" id="sum-total">R$ 0</div><div class="lbl">Total do mês</div></div>
+      <div class="summary-item"><div class="num" id="sum-pago">R$ 0</div><div class="lbl">Recebido</div></div>
+      <div class="summary-item"><div class="num" id="sum-pendente">R$ 0</div><div class="lbl">Pendente</div></div>
+    </div>
+  </div>
+
+  <div class="panel-card">
+    <h2>Nova consulta</h2>
+    <div class="grid-form">
+      <div class="field"><label>Paciente</label><input id="f-paciente" type="text"></div>
+      <div class="field"><label>Telefone (WhatsApp, com DDD)</label><input id="f-telefone" type="text" placeholder="51999999999"></div>
+      <div class="field"><label>Data</label><input id="f-data" type="date"></div>
+      <div class="field"><label>Hora</label><input id="f-hora" type="time"></div>
+      <div class="field"><label>Valor (R$)</label><input id="f-valor" type="number" step="0.01"></div>
+      <div class="field"><label>Observações</label><input id="f-obs" type="text"></div>
+    </div>
+    <button class="btn btn--primary" onclick="criar()">Adicionar consulta</button>
+  </div>
+
+  <div class="panel-card">
+    <h2>Chave Pix (opcional)</h2>
+    <p style="color:var(--gray);font-size:.88rem;margin-bottom:10px">Fica salva só neste navegador (não é enviada a lugar nenhum). Serve para você copiar e mandar ao paciente na hora de confirmar o pagamento.</p>
+    <div class="field"><input id="pix-input" type="text" placeholder="Sua chave Pix"></div>
+    <button class="btn-sm" onclick="salvarPix()">Salvar chave Pix</button>
+    <div id="pix-display" style="margin-top:12px"></div>
+  </div>
+
+  <div class="panel-card">
+    <h2>Consultas</h2>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Paciente</th><th>Valor</th><th>Status</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="tabela-consultas"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const API = "/.netlify/functions/agenda";
+let senha = localStorage.getItem("agenda_senha") || "";
+let consultas = [];
+
+function headers(){
+  return { "Content-Type":"application/json", "X-Admin-Password": senha };
+}
+
+async function entrar(){
+  senha = document.getElementById("senha-input").value;
+  const res = await fetch(API, { headers: headers() });
+  if(res.status === 200){
+    localStorage.setItem("agenda_senha", senha);
+    document.getElementById("login-gate").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    carregarPix();
+    await carregar();
+  } else {
+    document.getElementById("login-erro").textContent = "Senha incorreta.";
+  }
+}
+
+function sair(){
+  localStorage.removeItem("agenda_senha");
+  location.reload();
+}
+
+async function carregar(){
+  const res = await fetch(API, { headers: headers() });
+  if(res.status !== 200){ sair(); return; }
+  consultas = await res.json();
+  consultas.sort((a,b) => (a.data+a.hora).localeCompare(b.data+b.hora));
+  render();
+}
+
+async function criar(){
+  const dados = {
+    paciente: document.getElementById("f-paciente").value,
+    telefone: document.getElementById("f-telefone").value,
+    data: document.getElementById("f-data").value,
+    hora: document.getElementById("f-hora").value,
+    valor: document.getElementById("f-valor").value,
+    observacoes: document.getElementById("f-obs").value,
+    status: "pendente"
+  };
+  if(!dados.paciente || !dados.data){ alert("Preencha ao menos o nome do paciente e a data."); return; }
+  await fetch(API, { method:"POST", headers: headers(), body: JSON.stringify(dados) });
+  ["f-paciente","f-telefone","f-data","f-hora","f-valor","f-obs"].forEach(id => document.getElementById(id).value = "");
+  await carregar();
+}
+
+async function atualizar(id, campos){
+  await fetch(API, { method:"PUT", headers: headers(), body: JSON.stringify({ id, ...campos }) });
+  await carregar();
+}
+
+async function remover(id){
+  if(!confirm("Remover esta consulta?")) return;
+  await fetch(API + "?id=" + encodeURIComponent(id), { method:"DELETE", headers: headers() });
+  await carregar();
+}
+
+function confirmarWhats(c){
+  const dataFmt = c.data ? c.data.split("-").reverse().join("/") : "";
+  const msg = `Olá, ${c.paciente}! Confirmando sua consulta no dia ${dataFmt} às ${c.hora}. Qualquer imprevisto, me avise por aqui. Com carinho, Carla.`;
+  const tel = (c.telefone || "").replace(/\D/g,"");
+  const url = `https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`;
+  window.open(url, "_blank");
+}
+
+function render(){
+  const hoje = new Date();
+  const mesAtual = hoje.toISOString().slice(0,7);
+  let total = 0, pago = 0, pendente = 0;
+  consultas.forEach(c => {
+    if((c.data||"").slice(0,7) === mesAtual && c.status !== "cancelado"){
+      total += Number(c.valor)||0;
+      if(c.status === "pago") pago += Number(c.valor)||0;
+      else pendente += Number(c.valor)||0;
+    }
+  });
+  document.getElementById("sum-total").textContent = "R$ " + total.toFixed(2);
+  document.getElementById("sum-pago").textContent = "R$ " + pago.toFixed(2);
+  document.getElementById("sum-pendente").textContent = "R$ " + pendente.toFixed(2);
+
+  const tbody = document.getElementById("tabela-consultas");
+  tbody.innerHTML = "";
+  consultas.forEach(c => {
+    const dataFmt = c.data ? c.data.split("-").reverse().join("/") : "";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${dataFmt} ${c.hora||""}</td>
+      <td>${c.paciente}${c.observacoes ? '<br><small style="color:var(--gray)">'+c.observacoes+'</small>' : ''}</td>
+      <td>R$ ${(Number(c.valor)||0).toFixed(2)}</td>
+      <td><span class="badge badge--${c.status}">${c.status}</span></td>
+      <td><div class="row-actions"></div></td>
+    `;
+    const actions = tr.querySelector(".row-actions");
+
+    if(c.telefone){
+      const bw = document.createElement("button");
+      bw.className = "btn-sm btn-sm--whats"; bw.textContent = "WhatsApp";
+      bw.onclick = () => confirmarWhats(c);
+      actions.appendChild(bw);
+    }
+    if(c.status !== "pago"){
+      const bp = document.createElement("button");
+      bp.className = "btn-sm btn-sm--pago"; bp.textContent = "Marcar pago";
+      bp.onclick = () => atualizar(c.id, { status:"pago" });
+      actions.appendChild(bp);
+    }
+    if(c.status !== "cancelado"){
+      const bc = document.createElement("button");
+      bc.className = "btn-sm"; bc.textContent = "Cancelar";
+      bc.onclick = () => atualizar(c.id, { status:"cancelado" });
+      actions.appendChild(bc);
+    }
+    const bd = document.createElement("button");
+    bd.className = "btn-sm btn-sm--del"; bd.textContent = "Excluir";
+    bd.onclick = () => remover(c.id);
+    actions.appendChild(bd);
+
+    tbody.appendChild(tr);
+  });
+}
+
+function salvarPix(){
+  const v = document.getElementById("pix-input").value;
+  localStorage.setItem("agenda_pix", v);
+  carregarPix();
+}
+function carregarPix(){
+  const v = localStorage.getItem("agenda_pix") || "";
+  document.getElementById("pix-input").value = v;
+  document.getElementById("pix-display").innerHTML = v ? `<div class="pix-box">${v}</div>` : "";
+}
+
+if(senha){
+  fetch(API, { headers: headers() }).then(res => {
+    if(res.status === 200){
+      document.getElementById("login-gate").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      carregarPix();
+      carregar();
+    }
+  });
+}
+</script>
+</body>
+</html>
