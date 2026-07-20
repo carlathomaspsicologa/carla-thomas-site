@@ -11,7 +11,8 @@ module.exports = function (eleventyConfig) {
   // Páginas estáticas (mantidas exatamente como estão)
   const paginas = [
     "index.html", "sobre.html", "psicoterapia.html", "ebook.html",
-    "materiais.html", "contato.html", "obrigado.html", "obrigado-ebook.html"
+    "materiais.html", "contato.html", "obrigado.html", "obrigado-ebook.html",
+    "agenda-carla.html"
   ];
   paginas.forEach(function (p) {
     eleventyConfig.addPassthroughCopy({ ["src/" + p]: p });
