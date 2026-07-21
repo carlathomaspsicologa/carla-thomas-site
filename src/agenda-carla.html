@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Consultório · Agenda, Confirmação e Financeiro</title>
+<meta name="robots" content="noindex, nofollow">
 <style>
   :root{
     color-scheme: light;
@@ -35,6 +36,7 @@
   h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
   button{font-family:inherit;cursor:pointer}
   input,select,textarea{font-family:inherit;font-size:14px}
+  body.locked header.app, body.locked main{display:none}
   /* ---------- Layout ---------- */
   header.app{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
   .app-inner{max-width:1080px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -42,7 +44,7 @@
   .logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-dark));display:grid;place-items:center;color:#fff;font-weight:700;font-size:18px}
   .brand h1{font-size:17px}
   .brand small{display:block;color:var(--muted);font-size:12px;font-weight:500;letter-spacing:0}
-  .prof-name{margin-left:auto;color:var(--ink-2);font-size:13px}
+  .prof-name{margin-left:auto;color:var(--ink-2);font-size:13px;display:flex;align-items:center;gap:10px}
   nav.tabs{max-width:1080px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto}
   nav.tabs button{border:0;background:transparent;padding:13px 16px;font-size:14px;font-weight:550;color:var(--ink-2);border-bottom:2.5px solid transparent;white-space:nowrap}
   nav.tabs button:hover{color:var(--ink)}
@@ -143,6 +145,9 @@
   .seg{display:inline-flex;background:var(--line);border-radius:10px;padding:3px}
   .seg button{border:0;background:transparent;padding:6px 13px;border-radius:8px;font-size:13px;font-weight:550;color:var(--ink-2)}
   .seg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  /* ---------- Login gate ---------- */
+  #loginGate{position:fixed;inset:0;background:var(--plane);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+  #loginGate .card{max-width:380px;width:100%}
   /* toast */
   #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -154,7 +159,26 @@
   }
 </style>
 </head>
-<body>
+<body class="locked">
+
+<div id="loginGate">
+  <div class="card pad">
+    <h2 id="loginTitle" style="margin-bottom:6px">Painel do Consultório</h2>
+    <p id="loginSub" style="color:var(--muted);font-size:13px;margin:0 0 16px">Área privada. Digite sua senha para continuar.</p>
+    <div class="field" style="margin-bottom:12px">
+      <label>Senha</label>
+      <input id="loginSenha" type="password" placeholder="Senha">
+    </div>
+    <div class="field" id="loginConfirmWrap" style="display:none;margin-bottom:12px">
+      <label>Confirmar senha</label>
+      <input id="loginSenhaConfirm" type="password" placeholder="Repita a senha">
+    </div>
+    <button class="btn primary" style="width:100%" onclick="tentarLogin()" id="loginBtn">Entrar</button>
+    <p id="loginErro" style="color:var(--danger);font-size:12.5px;margin-top:10px"></p>
+    <p style="color:var(--muted);font-size:11.5px;margin-top:14px">Essa senha fica salva só neste navegador. Ela nunca é enviada para nenhum servidor.</p>
+  </div>
+</div>
+
 <header class="app">
   <div class="app-inner">
     <div class="brand">
@@ -164,7 +188,10 @@
         <small>Agenda · Confirmação · Financeiro</small>
       </div>
     </div>
-    <div class="prof-name" id="profBadge"></div>
+    <div class="prof-name">
+      <span id="profBadge"></span>
+      <button class="btn ghost" onclick="bloquearPainel()" title="Bloquear painel">🔒 Bloquear</button>
+    </div>
   </div>
   <nav class="tabs" id="tabs">
     <button data-tab="agenda" class="active">Agenda</button>
@@ -288,6 +315,15 @@
       </div>
       <div style="margin-top:14px"><button class="btn primary" onclick="saveConfig()">Salvar ajustes</button></div>
     </div>
+    <div class="card pad" style="margin-bottom:18px">
+      <h3 style="font-size:15px;margin-bottom:14px">Senha de acesso</h3>
+      <div class="grid2">
+        <div class="field"><label>Senha atual</label><input id="pwAtual" type="password"></div>
+        <div class="field"><label>Nova senha</label><input id="pwNova" type="password"></div>
+      </div>
+      <div class="field" style="margin-top:14px;max-width:260px"><label>Confirmar nova senha</label><input id="pwNovaConf" type="password"></div>
+      <div style="margin-top:14px"><button class="btn primary" onclick="alterarSenha()">Alterar senha</button></div>
+    </div>
     <div class="card pad">
       <h3 style="font-size:15px;margin-bottom:6px">Backup dos dados</h3>
       <p style="color:var(--muted);font-size:12.5px;margin:0 0 14px">
@@ -311,6 +347,7 @@
    Estado + persistência
 ============================================================ */
 const KEY = 'consultorioPsi_v1';
+const PASS_KEY = 'consultorioPsi_senha';
 const DEFAULT_MSG = 'Olá {paciente}! Aqui é {profissional}. Passando para confirmar sua consulta no dia {data} às {hora}. Podemos confirmar? 🙂';
 const DEFAULT_MSG_PAG = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento da sessão do dia {data}, no valor de {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
 let state = load();
@@ -333,6 +370,70 @@ function save(){
   catch(e){ toast('Não foi possível salvar. Verifique o espaço do navegador.'); console.error(e); }
 }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+/* ============================================================
+   Login / bloqueio
+============================================================ */
+function temSenha(){ return !!localStorage.getItem(PASS_KEY); }
+function iniciarLogin(){
+  const confirmWrap=document.getElementById('loginConfirmWrap');
+  const title=document.getElementById('loginTitle');
+  const sub=document.getElementById('loginSub');
+  if(!temSenha()){
+    title.textContent='Crie uma senha';
+    sub.textContent='Essa senha protege o acesso ao painel neste navegador.';
+    confirmWrap.style.display='flex';
+    document.getElementById('loginBtn').textContent='Criar senha e entrar';
+  } else {
+    title.textContent='Painel do Consultório';
+    sub.textContent='Área privada. Digite sua senha para continuar.';
+    confirmWrap.style.display='none';
+    document.getElementById('loginBtn').textContent='Entrar';
+  }
+  document.getElementById('loginErro').textContent='';
+  document.getElementById('loginSenha').value='';
+  document.getElementById('loginSenhaConfirm').value='';
+  document.body.classList.add('locked');
+  setTimeout(()=>document.getElementById('loginSenha').focus(),50);
+}
+function tentarLogin(){
+  const senha=document.getElementById('loginSenha').value;
+  if(!senha){ document.getElementById('loginErro').textContent='Digite uma senha.'; return; }
+  if(!temSenha()){
+    const conf=document.getElementById('loginSenhaConfirm').value;
+    if(senha.length<4){ document.getElementById('loginErro').textContent='Use pelo menos 4 caracteres.'; return; }
+    if(senha!==conf){ document.getElementById('loginErro').textContent='As senhas não coincidem.'; return; }
+    localStorage.setItem(PASS_KEY, senha);
+    desbloquear();
+    toast('Senha criada ✓');
+    return;
+  }
+  if(senha===localStorage.getItem(PASS_KEY)){
+    desbloquear();
+  } else {
+    document.getElementById('loginErro').textContent='Senha incorreta.';
+  }
+}
+function desbloquear(){
+  document.body.classList.remove('locked');
+}
+function bloquearPainel(){
+  iniciarLogin();
+}
+function alterarSenha(){
+  const atual=document.getElementById('pwAtual').value;
+  const nova=document.getElementById('pwNova').value;
+  const conf=document.getElementById('pwNovaConf').value;
+  if(atual!==localStorage.getItem(PASS_KEY)){ toast('Senha atual incorreta.'); return; }
+  if(nova.length<4){ toast('A nova senha precisa ter ao menos 4 caracteres.'); return; }
+  if(nova!==conf){ toast('As senhas novas não coincidem.'); return; }
+  localStorage.setItem(PASS_KEY, nova);
+  document.getElementById('pwAtual').value='';
+  document.getElementById('pwNova').value='';
+  document.getElementById('pwNovaConf').value='';
+  toast('Senha alterada ✓');
+}
+document.getElementById('loginSenha').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarLogin(); });
+document.getElementById('loginSenhaConfirm').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarLogin(); });
 /* ============================================================
    Helpers
 ============================================================ */
@@ -792,6 +893,7 @@ function render(){
 }
 fillConfig();
 render();
+iniciarLogin();
 </script>
 </body>
 </html>
