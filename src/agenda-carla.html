@@ -373,8 +373,13 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7
 /* ============================================================
    Login / bloqueio
 ============================================================ */
+const UNLOCK_KEY = 'consultorioPsi_desbloqueado';
 function temSenha(){ return !!localStorage.getItem(PASS_KEY); }
 function iniciarLogin(){
+  if(temSenha() && localStorage.getItem(UNLOCK_KEY)==='1'){
+    document.body.classList.remove('locked');
+    return;
+  }
   const confirmWrap=document.getElementById('loginConfirmWrap');
   const title=document.getElementById('loginTitle');
   const sub=document.getElementById('loginSub');
@@ -415,8 +420,10 @@ function tentarLogin(){
 }
 function desbloquear(){
   document.body.classList.remove('locked');
+  localStorage.setItem(UNLOCK_KEY, '1');
 }
 function bloquearPainel(){
+  localStorage.removeItem(UNLOCK_KEY);
   iniciarLogin();
 }
 function alterarSenha(){
