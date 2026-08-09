@@ -153,6 +153,46 @@
   #backupBanner{display:none;background:var(--warn-soft);border-bottom:1px solid var(--warn);color:#7a5200;padding:10px 20px;font-size:13.5px;text-align:center}
   #backupBanner.show{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
   body.locked #backupBanner{display:none!important}
+  /* ---------- Dark mode ---------- */
+  body.dark{
+    color-scheme: dark;
+    --plane:#161f1d;
+    --surface:#1e2927;
+    --surface-2:#243330;
+    --ink:#eef3f1;
+    --ink-2:#b7c4c0;
+    --muted:#84938f;
+    --line:#2c3835;
+    --line-strong:#3a4744;
+    --brand-soft:#1f3733;
+    --good-soft:#173322;
+    --warn-soft:#3a2c10;
+    --danger-soft:#3a2020;
+  }
+  /* ---------- Calendário mensal ---------- */
+  .cal-nav{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:12px}
+  .cal-nav h3{font-size:15px;text-transform:capitalize}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-dow{text-align:center;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;padding:4px 0}
+  .cal-cell{aspect-ratio:1;border:1px solid var(--line);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:2px;cursor:pointer;background:var(--surface)}
+  .cal-cell:hover{border-color:var(--brand)}
+  .cal-cell.out{visibility:hidden;cursor:default}
+  .cal-cell.today{border-color:var(--brand);border-width:2px}
+  .cal-cell.selected{background:var(--brand-soft);border-color:var(--brand)}
+  .cal-cell .cd-num{font-size:12px;font-weight:600}
+  .cal-cell .cd-dot{width:6px;height:6px;border-radius:50%;background:var(--brand);align-self:flex-start}
+  /* ---------- Badges extra ---------- */
+  .badge.online{background:#e6effa;color:var(--blue)}
+  .badge.presencial{background:var(--brand-soft);color:var(--brand-dark)}
+  /* ---------- Resumo do dia ---------- */
+  .resumo-dia{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .resumo-dia .ritem{flex:1;min-width:150px;background:var(--brand-soft);color:var(--brand-dark);border-radius:12px;padding:12px 14px;font-size:13px}
+  .resumo-dia .ritem b{display:block;font-size:20px;margin-bottom:2px}
+  .resumo-dia .ritem.warn{background:var(--warn-soft);color:#7a5200}
+  .resumo-dia .ritem.bday{background:#fbe4ee;color:#a4245e}
+  /* ---------- Inadimplência ---------- */
+  .inad-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line);font-size:13.5px}
+  .inad-row:last-child{border-bottom:0}
   /* toast */
   #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:500;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:0 8px 24px rgba(0,0,0,.25)}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -195,6 +235,7 @@
     </div>
     <div class="prof-name">
       <span id="profBadge"></span>
+      <button class="btn ghost" id="themeToggleBtn" onclick="toggleTema()" title="Alternar tema claro/escuro">🌙</button>
       <button class="btn ghost" onclick="bloquearPainel()" title="Bloquear painel">🔒 Bloquear</button>
     </div>
   </div>
@@ -218,11 +259,14 @@
         <div class="seg" id="agendaRange">
           <button data-range="week" class="on">Semana</button>
           <button data-range="all">Próximas</button>
+          <button data-range="month">Calendário</button>
           <button data-range="past">Anteriores</button>
         </div>
+        <button class="btn sm" onclick="exportSemanaICS()">⬇ Exportar semana (.ics)</button>
         <button class="btn primary" onclick="openConsulta()">+ Nova consulta</button>
       </div>
     </div>
+    <div class="resumo-dia" id="resumoDia"></div>
     <div id="agendaList"></div>
   </section>
   <!-- ========== PACIENTES ========== -->
@@ -255,6 +299,10 @@
       </div>
       <div class="chart" id="finChart"></div>
       <div class="chart-x" id="finChartX"></div>
+    </div>
+    <div class="card pad" style="margin-bottom:20px">
+      <h3 style="font-size:15px;margin-bottom:10px">Inadimplência</h3>
+      <div id="finInad"></div>
     </div>
     <div class="filters">
       <select id="finMonth" onchange="renderFinanceiro()"></select>
@@ -347,6 +395,26 @@
       <div class="field" style="margin-top:14px;max-width:260px"><label>Confirmar nova senha</label><input id="pwNovaConf" type="password"></div>
       <div style="margin-top:14px"><button class="btn primary" onclick="alterarSenha()">Alterar senha</button></div>
     </div>
+    <div class="card pad" style="margin-bottom:18px">
+      <h3 style="font-size:15px;margin-bottom:6px">Valores por tipo de atendimento</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">A sessão regular usa o valor cadastrado em cada paciente. Defina aqui os valores padrão para os outros tipos.</p>
+      <div class="grid2">
+        <div class="field"><label>Avaliação (R$)</label><input id="cfgValAvaliacao" type="number" step="0.01" placeholder="0"></div>
+        <div class="field"><label>Supervisão (R$)</label><input id="cfgValSupervisao" type="number" step="0.01" placeholder="0"></div>
+      </div>
+      <div class="grid2" style="margin-top:14px">
+        <div class="field"><label>Mentoria (R$)</label><input id="cfgValMentoria" type="number" step="0.01" placeholder="0"></div>
+      </div>
+      <div style="margin-top:14px"><button class="btn primary" onclick="saveConfig()">Salvar ajustes</button></div>
+    </div>
+    <div class="card pad" style="margin-bottom:18px">
+      <h3 style="font-size:15px;margin-bottom:6px">Segurança</h3>
+      <div class="field" style="max-width:280px">
+        <label>Bloquear painel automaticamente após (minutos)</label>
+        <input id="cfgBloqueioMin" type="number" min="0" step="1" placeholder="0 = nunca">
+      </div>
+      <div style="margin-top:14px"><button class="btn primary" onclick="saveConfig()">Salvar ajustes</button></div>
+    </div>
     <div class="card pad">
       <h3 style="font-size:15px;margin-bottom:6px">Backup dos dados</h3>
       <p style="color:var(--muted);font-size:12.5px;margin:0 0 14px">
@@ -384,7 +452,7 @@ function load(){
 }
 function normalize(d){
   return {
-    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, chavePix:'', ultimoBackupEm:null }, d.config||{}),
+    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
     pacientes: d.pacientes || [],
     consultas: d.consultas || []
   };
@@ -402,6 +470,7 @@ function temSenha(){ return !!localStorage.getItem(PASS_KEY); }
 function iniciarLogin(){
   if(temSenha() && localStorage.getItem(UNLOCK_KEY)==='1'){
     document.body.classList.remove('locked');
+    resetIdleTimer();
     return;
   }
   const confirmWrap=document.getElementById('loginConfirmWrap');
@@ -445,8 +514,10 @@ function tentarLogin(){
 function desbloquear(){
   document.body.classList.remove('locked');
   localStorage.setItem(UNLOCK_KEY, '1');
+  resetIdleTimer();
 }
 function bloquearPainel(){
+  clearTimeout(idleTimer);
   localStorage.removeItem(UNLOCK_KEY);
   iniciarLogin();
 }
@@ -463,6 +534,34 @@ function alterarSenha(){
   document.getElementById('pwNovaConf').value='';
   toast('Senha alterada ✓');
 }
+/* ============================================================
+   Tema claro/escuro
+============================================================ */
+function applyTheme(){
+  const dark=state.config.tema==='escuro';
+  document.body.classList.toggle('dark', dark);
+  const btn=document.getElementById('themeToggleBtn');
+  if(btn) btn.textContent = dark? '☀️' : '🌙';
+}
+function toggleTema(){
+  state.config.tema = state.config.tema==='escuro' ? 'claro' : 'escuro';
+  save(); applyTheme();
+}
+/* ============================================================
+   Bloqueio automático por inatividade
+============================================================ */
+let idleTimer=null;
+function resetIdleTimer(){
+  clearTimeout(idleTimer);
+  const min=parseInt(state.config.bloqueioMin)||0;
+  if(min<=0 || document.body.classList.contains('locked')) return;
+  idleTimer=setTimeout(()=>{
+    if(!document.body.classList.contains('locked')){ bloquearPainel(); toast('Painel bloqueado por inatividade'); }
+  }, min*60*1000);
+}
+['mousemove','keydown','click','scroll','touchstart'].forEach(ev=>{
+  document.addEventListener(ev, resetIdleTimer, {passive:true});
+});
 document.getElementById('loginSenha').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarLogin(); });
 document.getElementById('loginSenhaConfirm').addEventListener('keydown', e=>{ if(e.key==='Enter') tentarLogin(); });
 document.getElementById('loginBtn').addEventListener('click', function(e){
@@ -490,6 +589,29 @@ function toast(msg){
   const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2600);
 }
+/* Tipos de atendimento */
+const TIPOS_ATENDIMENTO=[
+  {key:'avaliacao',label:'Avaliação'},
+  {key:'regular',label:'Sessão regular'},
+  {key:'supervisao',label:'Supervisão'},
+  {key:'mentoria',label:'Mentoria'}
+];
+function tipoLabel(key){ const t=TIPOS_ATENDIMENTO.find(x=>x.key===key); return t? t.label : 'Sessão regular'; }
+function tipoEfetivo(c){
+  const p=paciente(c.pacienteId);
+  return c.tipo || (p&&p.tipoAtendimento) || 'regular';
+}
+function contarStatus(pacienteId, status){
+  return state.consultas.filter(c=>c.pacienteId===pacienteId && c.status===status).length;
+}
+function isAniversarioHoje(p){
+  if(!p.nascimento) return false;
+  const hoje=new Date();
+  const partes=p.nascimento.split('-');
+  if(partes.length<3) return false;
+  const m=parseInt(partes[1]), d=parseInt(partes[2]);
+  return m===hoje.getMonth()+1 && d===hoje.getDate();
+}
 /* ============================================================
    Navegação de abas
 ============================================================ */
@@ -514,19 +636,97 @@ document.getElementById('agendaRange').addEventListener('click',e=>{
 function sortedConsultas(){
   return [...state.consultas].sort((a,b)=> (a.data+a.hora).localeCompare(b.data+b.hora));
 }
+function htmlAppt(c){
+  const p=paciente(c.pacienteId);
+  const valor=consultaValor(c);
+  return `<div class="appt">
+        <div class="time">${c.hora}</div>
+        <div class="who">
+          <div class="nm">${pacienteNome(c.pacienteId)}</div>
+          <div class="meta">
+            <span class="badge ${c.status}">${STATUS[c.status].label}</span>
+            <span class="badge ${c.modalidade==='online'?'online':'presencial'}">${c.modalidade==='online'?'Online':'Presencial'}</span>
+            <span class="pay ${c.pago?'pago':'pendente'}">${c.pago?'● Pago':'○ A receber'} · ${BRL(valor)}</span>
+          </div>
+        </div>
+        <div class="acts">
+          ${c.modalidade==='online'&&c.linkVideo?`<button class="btn sm" onclick="window.open('${escapeAttr(c.linkVideo)}','_blank')">🎥 Entrar</button>`:''}
+          ${p&&p.telefone&&precisaLembrete24h(c)?`<button class="btn wa sm" onclick="lembrarWhats('${c.id}')">🔔 Lembrete 24h</button>`:''}
+          ${p&&p.telefone?`<button class="btn wa sm" onclick="confirmarWhats('${c.id}')">WhatsApp</button>`:''}
+          <button class="btn sm" onclick="addToGoogle('${c.id}')" title="Adicionar ao Google Agenda">📅 Google</button>
+          <button class="btn sm" onclick="openConsulta('${c.id}')">Editar</button>
+        </div>
+      </div>`;
+}
+function htmlListaPorDias(dates){
+  if(!dates.length) return `<div class="card"><div class="empty">Nenhuma consulta neste período.</div></div>`;
+  const today=todayStr();
+  let html='';
+  dates.forEach(date=>{
+    const items=sortedConsultas().filter(c=>c.data===date);
+    if(!items.length) return;
+    const isToday=date===today;
+    html+=`<div class="day-group card"><div class="day-head ${isToday?'today':''}" style="padding:14px 16px 8px">
+      <span class="d-date">${fmtDate(date)}</span>
+      <span class="d-count">${items.length} consulta(s)</span></div>`;
+    items.forEach(c=>{ html+=htmlAppt(c); });
+    html+='</div>';
+  });
+  return html || `<div class="card"><div class="empty">Nenhuma consulta neste período.</div></div>`;
+}
+/* Calendário mensal */
+let calRefDate=new Date();
+let calSelectedDate=null;
+function calMonthLabel(){ return calRefDate.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); }
+function calShift(n){ calRefDate=new Date(calRefDate.getFullYear(), calRefDate.getMonth()+n, 1); calSelectedDate=null; renderAgenda(); }
+function calSelectDay(dateStr){ calSelectedDate = calSelectedDate===dateStr? null : dateStr; renderAgenda(); }
+function calendarioHtml(){
+  const today=todayStr();
+  const year=calRefDate.getFullYear(), month=calRefDate.getMonth();
+  const first=new Date(year,month,1);
+  const startOffset=(first.getDay()+6)%7;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const countsByDay={};
+  state.consultas.forEach(c=>{ countsByDay[c.data]=(countsByDay[c.data]||0)+1; });
+  let cells='';
+  ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].forEach(d=>{ cells+=`<div class="cal-dow">${d}</div>`; });
+  for(let i=0;i<startOffset;i++){ cells+=`<div class="cal-cell out"></div>`; }
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr=`${year}-${pad(month+1)}-${pad(d)}`;
+    const isToday=dateStr===today, isSel=dateStr===calSelectedDate;
+    const n=countsByDay[dateStr]||0;
+    cells+=`<div class="cal-cell ${isToday?'today':''} ${isSel?'selected':''}" onclick="calSelectDay('${dateStr}')">
+      <span class="cd-num">${d}</span>${n?`<span class="cd-dot" title="${n} consulta(s)"></span>`:''}
+    </div>`;
+  }
+  const monthKey=`${year}-${pad(month+1)}`;
+  const targetDates = calSelectedDate? [calSelectedDate] : Object.keys(countsByDay).filter(d=>d.slice(0,7)===monthKey).sort();
+  return `<div class="card pad" style="margin-bottom:16px">
+    <div class="cal-nav">
+      <button class="btn ghost sm" onclick="calShift(-1)">← Anterior</button>
+      <h3>${calMonthLabel()}</h3>
+      <button class="btn ghost sm" onclick="calShift(1)">Próximo →</button>
+    </div>
+    <div class="cal-grid">${cells}</div>
+  </div>` + htmlListaPorDias(targetDates);
+}
+function renderResumoDia(){
+  const el=document.getElementById('resumoDia'); if(!el) return;
+  const today=todayStr();
+  const hojeConsultas=state.consultas.filter(c=>c.data===today && c.status!=='cancelada');
+  const pendencias=state.consultas.filter(c=>!c.pago && c.status!=='cancelada' && c.data<=today).length;
+  const aniversariantes=state.pacientes.filter(isAniversarioHoje);
+  if(!hojeConsultas.length && !pendencias && !aniversariantes.length){ el.innerHTML=''; return; }
+  let html='';
+  html+=`<div class="ritem"><b>${hojeConsultas.length}</b>consulta(s) hoje</div>`;
+  if(pendencias) html+=`<div class="ritem warn"><b>${pendencias}</b>pagamento(s) pendente(s)</div>`;
+  if(aniversariantes.length) html+=`<div class="ritem bday"><b>🎂 ${aniversariantes.length}</b>aniversariante(s) hoje: ${aniversariantes.map(p=>p.nome.split(' ')[0]).join(', ')}</div>`;
+  el.innerHTML=html;
+}
 function renderAgenda(){
+  renderResumoDia();
   const list=document.getElementById('agendaList');
   const today=todayStr();
-  let items=sortedConsultas();
-  if(agendaRange==='week'){
-    const now=new Date(); const end=new Date(); end.setDate(now.getDate()+7);
-    const endS=`${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`;
-    items=items.filter(c=> c.data>=today && c.data<=endS);
-  }else if(agendaRange==='all'){
-    items=items.filter(c=> c.data>=today);
-  }else{
-    items=items.filter(c=> c.data<today).reverse();
-  }
   document.getElementById('agendaSub').textContent =
     `${state.consultas.filter(c=>c.data>=today).length} consulta(s) futura(s) · ${state.pacientes.length} paciente(s)`;
   const pendentesLembrete=state.consultas.filter(precisaLembrete24h);
@@ -535,44 +735,53 @@ function renderAgenda(){
         🔔 <strong>${pendentesLembrete.length}</strong> consulta(s) nas próximas 24h ainda sem lembrete enviado.
       </div>`
     : '';
-  if(!items.length){
+  if(agendaRange==='month'){
+    list.innerHTML = banner + calendarioHtml();
+    return;
+  }
+  let dates;
+  if(agendaRange==='week'){
+    const now=new Date(); const end=new Date(); end.setDate(now.getDate()+7);
+    const endS=`${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`;
+    dates=[...new Set(state.consultas.filter(c=>c.data>=today && c.data<=endS).map(c=>c.data))].sort();
+  }else if(agendaRange==='all'){
+    dates=[...new Set(state.consultas.filter(c=>c.data>=today).map(c=>c.data))].sort();
+  }else{
+    dates=[...new Set(state.consultas.filter(c=>c.data<today).map(c=>c.data))].sort().reverse();
+  }
+  if(!dates.length){
     list.innerHTML = banner + `<div class="card"><div class="empty"><div class="big">🗓️</div>
       Nenhuma consulta ${agendaRange==='past'?'anterior':'neste período'}.<br>
       <button class="btn primary" style="margin-top:14px" onclick="openConsulta()">Agendar primeira consulta</button></div></div>`;
     return;
   }
-  // agrupar por dia
-  const groups={};
-  items.forEach(c=>{ (groups[c.data]=groups[c.data]||[]).push(c); });
-  let html=banner;
-  Object.keys(groups).forEach(date=>{
-    const isToday=date===today;
-    html+=`<div class="day-group card"><div class="day-head ${isToday?'today':''}" style="padding:14px 16px 8px">
-      <span class="d-date">${fmtDate(date)}</span>
-      <span class="d-count">${groups[date].length} consulta(s)</span></div>`;
-    groups[date].forEach(c=>{
-      const p=paciente(c.pacienteId);
-      const valor = c.valor!=null? c.valor : (p? p.valor : 0);
-      html+=`<div class="appt">
-        <div class="time">${c.hora}</div>
-        <div class="who">
-          <div class="nm">${pacienteNome(c.pacienteId)}</div>
-          <div class="meta">
-            <span class="badge ${c.status}">${STATUS[c.status].label}</span>
-            <span class="pay ${c.pago?'pago':'pendente'}">${c.pago?'● Pago':'○ A receber'} · ${BRL(valor)}</span>
-          </div>
-        </div>
-        <div class="acts">
-          ${p&&p.telefone&&precisaLembrete24h(c)?`<button class="btn wa sm" onclick="lembrarWhats('${c.id}')">🔔 Lembrete 24h</button>`:''}
-          ${p&&p.telefone?`<button class="btn wa sm" onclick="confirmarWhats('${c.id}')">WhatsApp</button>`:''}
-          <button class="btn sm" onclick="addToGoogle('${c.id}')" title="Adicionar ao Google Agenda">📅 Google</button>
-          <button class="btn sm" onclick="openConsulta('${c.id}')">Editar</button>
-        </div>
-      </div>`;
-    });
-    html+='</div>';
+  list.innerHTML = banner + htmlListaPorDias(dates);
+}
+function exportSemanaICS(){
+  const now=new Date(); const end=new Date(); end.setDate(now.getDate()+7);
+  const today=todayStr();
+  const endS=`${end.getFullYear()}-${pad(end.getMonth()+1)}-${pad(end.getDate())}`;
+  const items=sortedConsultas().filter(c=>c.data>=today && c.data<=endS && c.status!=='cancelada');
+  if(!items.length){ toast('Nenhuma consulta na semana para exportar.'); return; }
+  const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  let ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Consultorio//PT-BR\r\nCALSCALE:GREGORIAN\r\n`;
+  items.forEach(c=>{
+    const dur=c.duracaoMin||parseInt(state.config.duracao)||50;
+    const [y,m,d]=c.data.split('-').map(Number);
+    const [hh,mm]=(c.hora||'09:00').split(':').map(Number);
+    const start=new Date(y,m-1,d,hh,mm);
+    const end2=new Date(start.getTime()+dur*60000);
+    const summary=`Consulta — ${pacienteNome(c.pacienteId)}`;
+    const desc=`Situação: ${STATUS[c.status].label}\\nValor: ${BRL(consultaValor(c))}${c.obs?`\\nObs: ${c.obs.replace(/\n/g,' ')}`:''}`;
+    ics+=`BEGIN:VEVENT\r\nUID:${c.id}@consultorio\r\nDTSTART:${fmt(start)}\r\nDTEND:${fmt(end2)}\r\nSUMMARY:${summary}\r\nDESCRIPTION:${desc}\r\nLOCATION:${c.modalidade==='online'?(c.linkVideo||'Online'):'Presencial'}\r\nEND:VEVENT\r\n`;
   });
-  list.innerHTML=html;
+  ics+=`END:VCALENDAR\r\n`;
+  const blob=new Blob([ics],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`agenda-semana-${today}.ics`;
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('Agenda da semana exportada ✓');
 }
 /* WhatsApp */
 function normalizePhone(tel){
@@ -657,10 +866,10 @@ function gcalDates(dateStr,horaStr,mins){
 }
 function addToGoogle(id){
   const c=state.consultas.find(x=>x.id===id); if(!c) return;
-  const dur=parseInt(state.config.duracao)||50;
+  const dur=c.duracaoMin||parseInt(state.config.duracao)||50;
   let tz='UTC'; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'; }catch(e){}
   const text=`Consulta — ${pacienteNome(c.pacienteId)}`;
-  const details=[`Situação: ${STATUS[c.status].label}`,`Valor: ${BRL(consultaValor(c))}`, c.obs?`Obs: ${c.obs}`:'']
+  const details=[`Situação: ${STATUS[c.status].label}`,`Tipo: ${tipoLabel(tipoEfetivo(c))}`,`Valor: ${BRL(consultaValor(c))}`, c.modalidade==='online'&&c.linkVideo?`Link: ${c.linkVideo}`:'', c.obs?`Obs: ${c.obs}`:'']
     .filter(Boolean).join('\n');
   const url=`https://calendar.google.com/calendar/render?action=TEMPLATE`+
     `&text=${encodeURIComponent(text)}`+
@@ -690,7 +899,7 @@ function renderPacientes(){
   const rows=[...listaFiltrada].sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>{
     const total=state.consultas.filter(c=>c.pacienteId===p.id).length;
     return `<tr>
-      <td><strong>${p.nome}</strong>${p.obs?`<div style="color:var(--muted);font-size:12px">${p.obs}</div>`:''}</td>
+      <td><strong>${isAniversarioHoje(p)?'🎂 ':''}${p.nome}</strong>${p.obs?`<div style="color:var(--muted);font-size:12px">${p.obs}</div>`:''}</td>
       <td class="hide-sm">${p.telefone||'<span style="color:var(--muted)">—</span>'}</td>
       <td class="hide-sm">${p.cpf||'<span style="color:var(--muted)">—</span>'}</td>
       <td>${p.notaEmitida?'<span class="badge confirmada">Emitida</span>':'<span class="badge cancelada">Pendente</span>'}</td>
@@ -706,7 +915,13 @@ function renderPacientes(){
 /* ============================================================
    FINANCEIRO
 ============================================================ */
-function consultaValor(c){ const p=paciente(c.pacienteId); return c.valor!=null? c.valor : (p? p.valor||0 : 0); }
+function consultaValor(c){
+  if(c.valor!=null) return c.valor;
+  const p=paciente(c.pacienteId);
+  const tipo=tipoEfetivo(c);
+  if(tipo==='regular') return p? (p.valor||0) : 0;
+  return (state.config.valoresPorTipo && state.config.valoresPorTipo[tipo]) || 0;
+}
 function renderFinanceiro(){
   const today=todayStr();
   const monthSel=document.getElementById('finMonth');
@@ -731,6 +946,7 @@ function renderFinanceiro(){
     <div class="stat"><div class="lbl">Recebido total</div><div class="val">${BRL(recebido)}</div><div class="sub">histórico completo</div></div>`;
   // gráfico 6 meses
   renderChart();
+  renderInadimplencia();
   // tabela filtrada
   const fMonth=monthSel.value, fStatus=document.getElementById('finStatus').value;
   let items=sortedConsultas().reverse().filter(c=>c.status!=='cancelada');
@@ -750,6 +966,7 @@ function renderFinanceiro(){
     <td class="num">
       <div style="display:inline-flex;gap:6px;justify-content:flex-end">
         ${podeCobrar?`<button class="btn wa sm" onclick="cobrarWhats('${c.id}')" title="Enviar lembrete de pagamento">Cobrar</button>`:''}
+        ${c.pago?`<button class="btn sm" onclick="imprimirRecibo('${c.id}')" title="Gerar recibo">🖨 Recibo</button>`:''}
         <button class="btn sm ${c.pago?'':'primary'}" onclick="togglePago('${c.id}')">
           ${c.pago?'✓ Pago':'Marcar pago'}
         </button>
@@ -802,6 +1019,60 @@ function exportFinanceiroCSV(){
   a.click(); URL.revokeObjectURL(a.href);
   toast('Relatório exportado ✓');
 }
+function renderInadimplencia(){
+  const el=document.getElementById('finInad'); if(!el) return;
+  const today=todayStr();
+  const pendentes=state.consultas.filter(c=>!c.pago && c.status!=='cancelada' && c.data<=today);
+  if(!pendentes.length){ el.innerHTML=`<p style="color:var(--muted);font-size:13px;margin:0">Nenhuma pendência de pagamento. 🎉</p>`; return; }
+  const porPaciente={};
+  pendentes.forEach(c=>{
+    const pid=c.pacienteId;
+    if(!porPaciente[pid]) porPaciente[pid]={total:0, count:0, maisAntiga:c.data};
+    porPaciente[pid].total+=consultaValor(c);
+    porPaciente[pid].count++;
+    if(c.data<porPaciente[pid].maisAntiga) porPaciente[pid].maisAntiga=c.data;
+  });
+  const rows=Object.keys(porPaciente).map(pid=>{
+    const info=porPaciente[pid];
+    const dias=Math.floor((parseDate(today)-parseDate(info.maisAntiga))/(24*60*60*1000));
+    return {pid, ...info, dias};
+  }).sort((a,b)=>b.dias-a.dias);
+  el.innerHTML=rows.map(r=>`<div class="inad-row">
+    <span>${escapeHtml(pacienteNome(r.pid))} <span style="color:var(--muted)">· ${r.count} sessão(ões)</span></span>
+    <span><strong>${BRL(r.total)}</strong> <span style="color:var(--warn)">· ${r.dias} dia(s)</span></span>
+  </div>`).join('');
+}
+function imprimirRecibo(id){
+  const c=state.consultas.find(x=>x.id===id); if(!c) return;
+  const p=paciente(c.pacienteId);
+  const prof=state.config.profissional||'';
+  const valor=consultaValor(c);
+  const win=window.open('','_blank');
+  if(!win){ toast('Permita pop-ups para gerar o recibo.'); return; }
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Recibo</title>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:600px;margin:40px auto;color:#12211f;line-height:1.6}
+    h1{font-size:18px;border-bottom:2px solid #2f7d72;padding-bottom:10px}
+    .linha{margin:14px 0}
+    .lbl{color:#54615f;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+    .val{font-size:15px;font-weight:600}
+    .valor{font-size:22px;font-weight:700;color:#2f7d72;margin-top:20px}
+    .assinatura{margin-top:60px;border-top:1px solid #333;padding-top:6px;max-width:280px;text-align:center;font-size:13px}
+    @media print{ .no-print{display:none} }
+  </style></head><body>
+  <h1>Recibo de pagamento</h1>
+  <div class="linha"><div class="lbl">Paciente</div><div class="val">${escapeHtml(pacienteNome(c.pacienteId))}</div></div>
+  ${p&&p.cpf?`<div class="linha"><div class="lbl">CPF</div><div class="val">${escapeHtml(p.cpf)}</div></div>`:''}
+  <div class="linha"><div class="lbl">Data da sessão</div><div class="val">${fmtDateNum(c.data)}</div></div>
+  <div class="linha"><div class="lbl">Tipo de atendimento</div><div class="val">${tipoLabel(tipoEfetivo(c))}</div></div>
+  <div class="linha"><div class="lbl">Forma de pagamento</div><div class="val">${c.forma||'—'}</div></div>
+  <div class="valor">${BRL(valor)}</div>
+  <div class="assinatura">${escapeHtml(prof)}</div>
+  <div class="no-print" style="margin-top:30px"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(()=>{ try{ win.focus(); win.print(); }catch(e){} }, 400);
+}
 function togglePago(id){
   const c=state.consultas.find(x=>x.id===id); if(!c) return;
   c.pago=!c.pago;
@@ -819,7 +1090,7 @@ overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 /* --- Paciente --- */
 function openPaciente(id){
-  const p = id? paciente(id) : {nome:'',telefone:'',valor:'',obs:'',cpf:'',notaEmitida:false};
+  const p = id? paciente(id) : {nome:'',telefone:'',valor:'',obs:'',cpf:'',notaEmitida:false,tipoAtendimento:'regular',nascimento:'',encaminhadoPor:'',menorIdade:false,responsavelNome:'',responsavelTel:'',responsavelParentesco:''};
   modal.innerHTML=`
     <div class="modal-head"><h3>${id?'Editar paciente':'Novo paciente'}</h3>
       <button class="close-x" onclick="closeModal()">×</button></div>
@@ -838,6 +1109,27 @@ function openPaciente(id){
             Nota Receita Saúde já emitida
           </label>
         </div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Tipo de atendimento padrão</label>
+          <select id="pTipo">${TIPOS_ATENDIMENTO.map(t=>`<option value="${t.key}" ${t.key===(p.tipoAtendimento||'regular')?'selected':''}>${t.label}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Data de nascimento</label><input id="pNascimento" type="date" value="${p.nascimento||''}"></div>
+      </div>
+      <div class="field"><label>Encaminhado por</label><input id="pEncaminhado" value="${escapeAttr(p.encaminhadoPor||'')}" placeholder="Ex: indicação de outro paciente, Instagram…"></div>
+      ${id?`<div style="font-size:12.5px;color:var(--muted)">Faltas: <strong>${contarStatus(id,'faltou')}</strong> · Cancelamentos: <strong>${contarStatus(id,'cancelada')}</strong></div>`:''}
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:550;font-size:13.5px">
+          <input type="checkbox" id="pMenor" ${p.menorIdade?'checked':''} style="width:16px;height:16px" onchange="document.getElementById('respWrap').style.display=this.checked?'flex':'none'">
+          Paciente menor de idade (tem responsável)
+        </label>
+      </div>
+      <div id="respWrap" style="display:${p.menorIdade?'flex':'none'};flex-direction:column;gap:14px">
+        <div class="grid2">
+          <div class="field"><label>Nome do responsável</label><input id="pRespNome" value="${escapeAttr(p.responsavelNome||'')}"></div>
+          <div class="field"><label>Parentesco</label><input id="pRespParentesco" value="${escapeAttr(p.responsavelParentesco||'')}" placeholder="Mãe, pai…"></div>
+        </div>
+        <div class="field"><label>Telefone do responsável</label><input id="pRespTel" value="${escapeAttr(p.responsavelTel||'')}"></div>
       </div>
       <div class="field"><label>Observações</label><textarea id="pObs" placeholder="Anotações gerais (opcional)">${escapeHtml(p.obs||'')}</textarea></div>
       ${id?`
@@ -905,6 +1197,13 @@ function savePaciente(id){
     valor:parseFloat(document.getElementById('pValor').value)||0,
     cpf:document.getElementById('pCpf').value.trim(),
     notaEmitida:document.getElementById('pNota').checked,
+    tipoAtendimento:document.getElementById('pTipo').value,
+    nascimento:document.getElementById('pNascimento').value,
+    encaminhadoPor:document.getElementById('pEncaminhado').value.trim(),
+    menorIdade:document.getElementById('pMenor').checked,
+    responsavelNome:document.getElementById('pRespNome').value.trim(),
+    responsavelTel:document.getElementById('pRespTel').value.trim(),
+    responsavelParentesco:document.getElementById('pRespParentesco').value.trim(),
     obs:document.getElementById('pObs').value.trim() };
   if(id){ Object.assign(paciente(id), data); }
   else{ state.pacientes.push(Object.assign({id:uid()}, data)); }
@@ -918,7 +1217,7 @@ function delPaciente(id){
 }
 /* --- Consulta --- */
 function openConsulta(id){
-  const c = id? state.consultas.find(x=>x.id===id) : {pacienteId:'',data:todayStr(),hora:'09:00',status:'agendada',pago:false,valor:null,forma:'',obs:'',lembreteEnviado:false};
+  const c = id? state.consultas.find(x=>x.id===id) : {pacienteId:'',data:todayStr(),hora:'09:00',status:'agendada',pago:false,valor:null,forma:'',obs:'',lembreteEnviado:false,tipo:'',modalidade:'presencial',linkVideo:'',duracaoMin:null};
   if(!state.pacientes.length && !id){
     closeModal();
     if(confirm('Você ainda não tem pacientes cadastrados. Cadastrar um paciente agora?')) openPaciente();
@@ -947,6 +1246,23 @@ function openConsulta(id){
           <select id="cForma">
             ${['','Pix','Dinheiro','Cartão','Transferência','Convênio'].map(f=>`<option value="${f}" ${f===(c.forma||'')?'selected':''}>${f||'—'}</option>`).join('')}
           </select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Tipo de atendimento</label><select id="cTipo">
+          <option value="">Padrão do paciente</option>
+          ${TIPOS_ATENDIMENTO.map(t=>`<option value="${t.key}" ${t.key===(c.tipo||'')?'selected':''}>${t.label}</option>`).join('')}
+        </select></div>
+        <div class="field"><label>Modalidade</label><select id="cModalidade" onchange="document.getElementById('linkVideoWrap').style.display=this.value==='online'?'flex':'none'">
+          <option value="presencial" ${c.modalidade!=='online'?'selected':''}>Presencial</option>
+          <option value="online" ${c.modalidade==='online'?'selected':''}>Online</option>
+        </select></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Duração desta sessão (min)</label><input id="cDuracao" type="number" min="5" step="5" value="${c.duracaoMin??''}" placeholder="padrão: ${state.config.duracao||50}"></div>
+        <div class="field" id="linkVideoWrap" style="display:${c.modalidade==='online'?'flex':'none'};flex-direction:column;gap:5px">
+          <label>Link da videochamada</label>
+          <input id="cLinkVideo" value="${escapeAttr(c.linkVideo||'')}" placeholder="https://meet.google.com/…">
+        </div>
       </div>
       <div class="field"><label>Anotações da sessão</label><textarea id="cObs" placeholder="Opcional">${escapeHtml(c.obs||'')}</textarea></div>
       ${!id?`<div class="grid2">
@@ -978,12 +1294,17 @@ function saveConsulta(id){
   const pacienteId=document.getElementById('cPac').value;
   if(!pacienteId){ toast('Selecione o paciente.'); return; }
   const valorRaw=document.getElementById('cValor').value;
+  const duracaoRaw=document.getElementById('cDuracao').value;
   const data={
     pacienteId, data:document.getElementById('cData').value, hora:document.getElementById('cHora').value,
     status:document.getElementById('cStatus').value,
     valor: valorRaw===''? null : parseFloat(valorRaw),
     pago: document.getElementById('cPago').value==='1',
     forma: document.getElementById('cForma').value,
+    tipo: document.getElementById('cTipo').value,
+    modalidade: document.getElementById('cModalidade').value,
+    linkVideo: document.getElementById('cLinkVideo').value.trim(),
+    duracaoMin: duracaoRaw===''? null : parseInt(duracaoRaw),
     obs: document.getElementById('cObs').value.trim()
   };
   if(!data.data || !data.hora){ toast('Preencha data e horário.'); return; }
@@ -1019,6 +1340,11 @@ function fillConfig(){
   document.getElementById('cfgMsgLembrete').value=state.config.mensagemLembrete||DEFAULT_MSG_LEMBRETE;
   document.getElementById('cfgMsgPag').value=state.config.mensagemPag||DEFAULT_MSG_PAG;
   document.getElementById('cfgPix').value=state.config.chavePix||'';
+  const vpt=state.config.valoresPorTipo||{};
+  document.getElementById('cfgValAvaliacao').value=vpt.avaliacao||'';
+  document.getElementById('cfgValSupervisao').value=vpt.supervisao||'';
+  document.getElementById('cfgValMentoria').value=vpt.mentoria||'';
+  document.getElementById('cfgBloqueioMin').value=state.config.bloqueioMin||0;
   updatePreview();
 }
 function updatePreview(){
@@ -1042,7 +1368,13 @@ function saveConfig(){
   state.config.mensagemLembrete=document.getElementById('cfgMsgLembrete').value.trim()||DEFAULT_MSG_LEMBRETE;
   state.config.mensagemPag=document.getElementById('cfgMsgPag').value.trim()||DEFAULT_MSG_PAG;
   state.config.chavePix=document.getElementById('cfgPix').value.trim();
-  save(); render(); toast('Ajustes salvos ✓');
+  state.config.valoresPorTipo={
+    avaliacao: parseFloat(document.getElementById('cfgValAvaliacao').value)||0,
+    supervisao: parseFloat(document.getElementById('cfgValSupervisao').value)||0,
+    mentoria: parseFloat(document.getElementById('cfgValMentoria').value)||0
+  };
+  state.config.bloqueioMin=parseInt(document.getElementById('cfgBloqueioMin').value)||0;
+  save(); render(); resetIdleTimer(); toast('Ajustes salvos ✓');
 }
 document.getElementById('view-ajustes').addEventListener('input',e=>{
   if(['cfgMsg','cfgMsgLembrete','cfgMsgPag','cfgProf','cfgPix'].includes(e.target.id)) updatePreview();
@@ -1106,6 +1438,7 @@ function escapeAttr(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':
 function render(){
   const prof=state.config.profissional;
   document.getElementById('profBadge').textContent = prof? prof : '';
+  applyTheme();
   renderBackupBanner();
   renderAgenda();
   renderPacientes();
