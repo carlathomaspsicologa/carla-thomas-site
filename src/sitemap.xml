@@ -16,6 +16,21 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://carlagabriellethomas.com/mentoria.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/transicoes-de-vida.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/duvidas-frequentes.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://carlagabriellethomas.com/contato.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
