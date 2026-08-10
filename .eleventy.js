@@ -12,7 +12,8 @@ module.exports = function (eleventyConfig) {
   const paginas = [
     "index.html", "sobre.html", "psicoterapia.html", "ebook.html",
     "materiais.html", "contato.html", "obrigado.html", "obrigado-ebook.html",
-    "agenda-carla.html"
+    "agenda-carla.html", "mentoria.html", "duvidas-frequentes.html",
+    "transicoes-de-vida.html"
   ];
   paginas.forEach(function (p) {
     eleventyConfig.addPassthroughCopy({ ["src/" + p]: p });
