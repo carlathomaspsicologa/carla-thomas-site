@@ -442,6 +442,8 @@ const PASS_KEY = 'consultorioPsi_senha';
 const DEFAULT_MSG = 'Olá {paciente}! Aqui é {profissional}. Passando para confirmar sua consulta no dia {data} às {hora}. Podemos confirmar? 🙂';
 const DEFAULT_MSG_PAG = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento da sessão do dia {data}, no valor de {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
 const DEFAULT_MSG_LEMBRETE = 'Olá {paciente}! Passando para lembrar da sua consulta amanhã, dia {data} às {hora}. Até lá! {profissional}';
+const DEFAULT_MSG_PAG_MULTI = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento de {qtd} sessões: {lista}. Total: {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
+let finSelecionadas = new Set();
 let state = load();
 function load(){
   try{
@@ -961,7 +963,9 @@ function renderFinanceiro(){
   const rows=items.map(c=>{
     const p=paciente(c.pacienteId);
     const podeCobrar = !c.pago && p && p.telefone;
+    const podeSelecionar = !c.pago;
     return `<tr>
+    <td style="width:30px">${podeSelecionar?`<input type="checkbox" ${finSelecionadas.has(c.id)?'checked':''} onchange="toggleFinSel('${c.id}')" style="width:16px;height:16px">`:''}</td>
     <td>${fmtDateNum(c.data)}<span style="color:var(--muted)"> · ${c.hora}</span></td>
     <td>${pacienteNome(c.pacienteId)}</td>
     <td class="hide-sm">${c.pago?(c.forma||'—'):'<span style="color:var(--muted)">—</span>'}</td>
@@ -977,12 +981,85 @@ function renderFinanceiro(){
     </td>
   </tr>`;}).join('');
   const totalFiltro=items.reduce((s,c)=>s+consultaValor(c),0);
-  tbl.innerHTML=`<table><thead><tr><th>Data</th><th>Paciente</th>
+  const idsVisiveisPendentes=items.filter(c=>!c.pago).map(c=>c.id);
+  [...finSelecionadas].forEach(id=>{ if(!idsVisiveisPendentes.includes(id)) finSelecionadas.delete(id); });
+  const qtdSel=finSelecionadas.size;
+  const totalSel=[...finSelecionadas].reduce((s,id)=>{ const c=state.consultas.find(x=>x.id===id); return s+(c?consultaValor(c):0); },0);
+  const todasMarcadas = idsVisiveisPendentes.length>0 && idsVisiveisPendentes.every(id=>finSelecionadas.has(id));
+  const bulkBar = idsVisiveisPendentes.length? `<div class="row between" style="padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer">
+      <input type="checkbox" ${todasMarcadas?'checked':''} onchange="toggleFinSelAll(this.checked)" style="width:16px;height:16px">
+      ${qtdSel?`${qtdSel} selecionada(s) · ${BRL(totalSel)}`:'Selecionar pendentes para cobrar juntas'}
+    </label>
+    ${qtdSel?`<div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn wa sm" onclick="cobrarSelecionadasWhats()">Cobrar selecionadas (WhatsApp)</button>
+      <button class="btn primary sm" onclick="marcarSelecionadasPagas()">Marcar todas como pagas</button>
+    </div>`:''}
+  </div>`:'';
+  tbl.innerHTML=`${bulkBar}<table><thead><tr><th></th><th>Data</th><th>Paciente</th>
     <th class="hide-sm">Forma</th><th class="num">Valor</th><th class="num">Situação</th></tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="3" style="border:0"></td>
+    <tfoot><tr><td colspan="4" style="border:0"></td>
       <td class="num" style="border:0;font-weight:700">${BRL(totalFiltro)}</td>
       <td style="border:0"></td></tr></tfoot></table>`;
+}
+function toggleFinSel(id){
+  if(finSelecionadas.has(id)) finSelecionadas.delete(id); else finSelecionadas.add(id);
+  renderFinanceiro();
+}
+function toggleFinSelAll(checked){
+  const fMonth=document.getElementById('finMonth').value, fStatus=document.getElementById('finStatus').value;
+  let items=sortedConsultas().reverse().filter(c=>c.status!=='cancelada' && !c.pago);
+  if(fMonth) items=items.filter(c=>c.data.slice(0,7)===fMonth);
+  if(fStatus==='pago') items=[];
+  items.forEach(c=>{ if(checked) finSelecionadas.add(c.id); else finSelecionadas.delete(c.id); });
+  renderFinanceiro();
+}
+function buildMsgPagMulti(pacienteId, consultasSel){
+  const p=paciente(pacienteId);
+  const pix=(state.config.chavePix||'').trim();
+  const lista=consultasSel.map(c=>fmtDateNum(c.data)).join(', ');
+  const total=consultasSel.reduce((s,c)=>s+consultaValor(c),0);
+  return (state.config.mensagemPagMulti||DEFAULT_MSG_PAG_MULTI)
+    .replaceAll('{paciente}', p? p.nome.split(' ')[0] : '')
+    .replaceAll('{qtd}', String(consultasSel.length))
+    .replaceAll('{lista}', lista)
+    .replaceAll('{valor}', BRL(total))
+    .replaceAll('{pix}', pix? `Chave Pix: ${pix}. ` : '')
+    .replaceAll('{profissional}', state.config.profissional||'');
+}
+function cobrarSelecionadasWhats(){
+  if(!finSelecionadas.size){ toast('Selecione ao menos uma consulta.'); return; }
+  const selecionadas=state.consultas.filter(c=>finSelecionadas.has(c.id));
+  const porPaciente={};
+  selecionadas.forEach(c=>{ (porPaciente[c.pacienteId]=porPaciente[c.pacienteId]||[]).push(c); });
+  const semTelefone=[];
+  let abertas=0;
+  Object.keys(porPaciente).forEach((pacId, idx)=>{
+    const p=paciente(pacId);
+    const lista=porPaciente[pacId];
+    if(!p||!p.telefone){ semTelefone.push(p?p.nome:'(paciente removido)'); return; }
+    const phone=normalizePhone(p.telefone);
+    const url=`https://wa.me/${phone}?text=${encodeURIComponent(buildMsgPagMulti(pacId, lista))}`;
+    setTimeout(()=>window.open(url,'_blank'), abertas*350);
+    abertas++;
+  });
+  if(abertas) toast(`Abrindo WhatsApp para ${abertas} paciente(s)…`);
+  if(semTelefone.length) toast(`Sem telefone cadastrado: ${semTelefone.join(', ')}`);
+}
+function marcarSelecionadasPagas(){
+  if(!finSelecionadas.size){ toast('Selecione ao menos uma consulta.'); return; }
+  const n=finSelecionadas.size;
+  if(!confirm(`Marcar ${n} consulta(s) selecionada(s) como pagas?`)) return;
+  finSelecionadas.forEach(id=>{
+    const c=state.consultas.find(x=>x.id===id); if(!c) return;
+    c.pago=true;
+    if(!c.forma) c.forma='Pix';
+    if(c.status!=='realizada' && c.status!=='faltou' && c.status!=='cancelada') c.status='realizada';
+  });
+  finSelecionadas.clear();
+  save(); render();
+  toast(`${n} consulta(s) marcada(s) como pagas ✓`);
 }
 function renderChart(){
   const chart=document.getElementById('finChart'), xax=document.getElementById('finChartX');
