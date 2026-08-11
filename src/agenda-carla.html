@@ -964,11 +964,15 @@ function renderFinanceiro(){
     const p=paciente(c.pacienteId);
     const podeCobrar = !c.pago && p && p.telefone;
     const podeSelecionar = !c.pago;
+    const notaBadge = c.pago
+      ? `<span class="badge ${c.notaEmitida?'confirmada':'cancelada'}" style="cursor:pointer" onclick="toggleNotaConsulta('${c.id}')" title="Clique para alternar">${c.notaEmitida?'✓ Emitida':'Pendente'}</span>`
+      : '<span style="color:var(--muted)">—</span>';
     return `<tr>
     <td style="width:30px">${podeSelecionar?`<input type="checkbox" ${finSelecionadas.has(c.id)?'checked':''} onchange="toggleFinSel('${c.id}')" style="width:16px;height:16px">`:''}</td>
     <td>${fmtDateNum(c.data)}<span style="color:var(--muted)"> · ${c.hora}</span></td>
     <td>${pacienteNome(c.pacienteId)}</td>
     <td class="hide-sm">${c.pago?(c.forma||'—'):'<span style="color:var(--muted)">—</span>'}</td>
+    <td class="hide-sm">${notaBadge}</td>
     <td class="num">${BRL(consultaValor(c))}</td>
     <td class="num">
       <div style="display:inline-flex;gap:6px;justify-content:flex-end">
@@ -997,9 +1001,9 @@ function renderFinanceiro(){
     </div>`:''}
   </div>`:'';
   tbl.innerHTML=`${bulkBar}<table><thead><tr><th></th><th>Data</th><th>Paciente</th>
-    <th class="hide-sm">Forma</th><th class="num">Valor</th><th class="num">Situação</th></tr></thead>
+    <th class="hide-sm">Forma</th><th class="hide-sm">Nota</th><th class="num">Valor</th><th class="num">Situação</th></tr></thead>
     <tbody>${rows}</tbody>
-    <tfoot><tr><td colspan="4" style="border:0"></td>
+    <tfoot><tr><td colspan="5" style="border:0"></td>
       <td class="num" style="border:0;font-weight:700">${BRL(totalFiltro)}</td>
       <td style="border:0"></td></tr></tfoot></table>`;
 }
@@ -1051,11 +1055,13 @@ function marcarSelecionadasPagas(){
   if(!finSelecionadas.size){ toast('Selecione ao menos uma consulta.'); return; }
   const n=finSelecionadas.size;
   if(!confirm(`Marcar ${n} consulta(s) selecionada(s) como pagas?`)) return;
+  const notaEmitida=confirm(`Nota Receita Saúde já foi emitida para essa(s) ${n} sessão(ões)?`);
   finSelecionadas.forEach(id=>{
     const c=state.consultas.find(x=>x.id===id); if(!c) return;
     c.pago=true;
     if(!c.forma) c.forma='Pix';
     if(c.status!=='realizada' && c.status!=='faltou' && c.status!=='cancelada') c.status='realizada';
+    c.notaEmitida=notaEmitida;
   });
   finSelecionadas.clear();
   save(); render();
@@ -1083,15 +1089,15 @@ function exportFinanceiroCSV(){
   if(fStatus==='pago') items=items.filter(c=>c.pago);
   if(fStatus==='pendente') items=items.filter(c=>!c.pago);
   if(!items.length){ toast('Nenhum lançamento para exportar com esse filtro.'); return; }
-  const header=['Data','Hora','Paciente','CPF','Forma de pagamento','Situação','Valor (R$)'];
+  const header=['Data','Hora','Paciente','CPF','Forma de pagamento','Situação','Nota Receita Saúde','Valor (R$)'];
   const linhas=items.map(c=>{
     const p=paciente(c.pacienteId);
-    return [fmtDateNum(c.data), c.hora, pacienteNome(c.pacienteId), (p&&p.cpf)||'', c.pago?(c.forma||''):'', c.pago?'Pago':'Pendente', consultaValor(c).toFixed(2).replace('.',',')];
+    return [fmtDateNum(c.data), c.hora, pacienteNome(c.pacienteId), (p&&p.cpf)||'', c.pago?(c.forma||''):'', c.pago?'Pago':'Pendente', c.pago?(c.notaEmitida?'Emitida':'Pendente'):'', consultaValor(c).toFixed(2).replace('.',',')];
   });
   const totalFiltro=items.reduce((s,c)=>s+consultaValor(c),0);
   const esc=v=>`"${String(v).replace(/"/g,'""')}"`;
   let csv=header.map(esc).join(';')+'\n'+linhas.map(l=>l.map(esc).join(';')).join('\n');
-  csv+=`\n${['','','','','','Total', totalFiltro.toFixed(2).replace('.',',')].map(esc).join(';')}`;
+  csv+=`\n${['','','','','','','Total', totalFiltro.toFixed(2).replace('.',',')].map(esc).join(';')}`;
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
@@ -1158,8 +1164,17 @@ function togglePago(id){
   c.pago=!c.pago;
   if(c.pago && !c.forma) c.forma='Pix';
   if(c.pago && c.status!=='realizada' && c.status!=='faltou' && c.status!=='cancelada') c.status='realizada';
+  if(c.pago){
+    c.notaEmitida=confirm('Nota Receita Saúde já foi emitida para esta sessão?');
+  }
   save(); render();
-  toast(c.pago?'Marcado como pago ✓':'Marcado como a receber');
+  toast(c.pago? (c.notaEmitida?'Marcado como pago ✓ · Nota emitida':'Marcado como pago ✓ · Nota pendente') : 'Marcado como a receber');
+}
+function toggleNotaConsulta(id){
+  const c=state.consultas.find(x=>x.id===id); if(!c) return;
+  c.notaEmitida=!c.notaEmitida;
+  save(); renderFinanceiro();
+  toast(c.notaEmitida?'Nota marcada como emitida ✓':'Nota marcada como pendente');
 }
 /* ============================================================
    MODAIS
@@ -1309,7 +1324,7 @@ function delPaciente(id){
 }
 /* --- Consulta --- */
 function openConsulta(id){
-  const c = id? state.consultas.find(x=>x.id===id) : {pacienteId:'',data:todayStr(),hora:'09:00',status:'agendada',pago:false,valor:null,forma:'',obs:'',lembreteEnviado:false,tipo:'',modalidade:'presencial',linkVideo:'',duracaoMin:null};
+  const c = id? state.consultas.find(x=>x.id===id) : {pacienteId:'',data:todayStr(),hora:'09:00',status:'agendada',pago:false,notaEmitida:false,valor:null,forma:'',obs:'',lembreteEnviado:false,tipo:'',modalidade:'presencial',linkVideo:'',duracaoMin:null};
   if(!state.pacientes.length && !id){
     closeModal();
     if(confirm('Você ainda não tem pacientes cadastrados. Cadastrar um paciente agora?')) openPaciente();
@@ -1338,6 +1353,12 @@ function openConsulta(id){
           <select id="cForma">
             ${['','Pix','Dinheiro','Cartão','Transferência','Convênio'].map(f=>`<option value="${f}" ${f===(c.forma||'')?'selected':''}>${f||'—'}</option>`).join('')}
           </select></div>
+      </div>
+      <div class="field" style="flex-direction:row;align-items:center;gap:10px">
+        <label style="margin:0;display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer">
+          <input type="checkbox" id="cNotaEmitida" ${c.notaEmitida?'checked':''} style="width:16px;height:16px">
+          Nota Receita Saúde emitida
+        </label>
       </div>
       <div class="grid2">
         <div class="field"><label>Tipo de atendimento</label><select id="cTipo">
@@ -1392,6 +1413,7 @@ function saveConsulta(id){
     status:document.getElementById('cStatus').value,
     valor: valorRaw===''? null : parseFloat(valorRaw),
     pago: document.getElementById('cPago').value==='1',
+    notaEmitida: document.getElementById('cNotaEmitida').checked,
     forma: document.getElementById('cForma').value,
     tipo: document.getElementById('cTipo').value,
     modalidade: document.getElementById('cModalidade').value,
