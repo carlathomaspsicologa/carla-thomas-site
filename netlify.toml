@@ -2,5 +2,8 @@
   command = "npm run build"
   publish = "_site"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_PATHS = "src/assets/kit-cf052734cbc6.pdf"
+
 [functions]
   directory = "netlify/functions"
