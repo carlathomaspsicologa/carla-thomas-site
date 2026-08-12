@@ -392,13 +392,17 @@
         Os botões de envio ficam no cadastro de cada paciente, na seção "Documentos". Marcadores: <code>{paciente}</code>, <code>{profissional}</code>, e <code>{link}</code> (só na mensagem do kit).
       </p>
       <div class="field" style="margin-bottom:12px">
+        <label>Link da Ficha de Cadastro (PDF)</label>
+        <input id="cfgLinkFicha" placeholder="Ex: link do PDF da ficha">
+      </div>
+      <div class="field" style="margin-bottom:12px">
         <label>Link do Kit de Boas-vindas (opcional)</label>
         <input id="cfgLinkKit" placeholder="Ex: link do Google Drive ou do seu site">
       </div>
       <div class="field" style="margin-bottom:6px">
         <label>Mensagem ao enviar a Ficha de Cadastro</label>
         <textarea id="cfgMsgFicha" rows="3"></textarea>
-        <span class="hint">O WhatsApp não anexa o PDF sozinho — depois de abrir a conversa, anexe o arquivo da ficha manualmente.</span>
+        <span class="hint">O link já vem preenchido com a ficha em PDF hospedada no site. Pode trocar por outro link se preferir.</span>
       </div>
       <div style="margin-bottom:14px;padding:12px 14px;background:var(--brand-soft);border-radius:10px;font-size:13px;color:var(--brand-dark)">
         <strong>Prévia:</strong> <span id="msgFichaPreview"></span>
@@ -469,7 +473,7 @@ const DEFAULT_MSG = 'Olá {paciente}! Aqui é {profissional}. Passando para conf
 const DEFAULT_MSG_PAG = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento da sessão do dia {data}, no valor de {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
 const DEFAULT_MSG_LEMBRETE = 'Olá {paciente}! Passando para lembrar da sua consulta amanhã, dia {data} às {hora}. Até lá! {profissional}';
 const DEFAULT_MSG_PAG_MULTI = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento de {qtd} sessões: {lista}. Total: {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
-const DEFAULT_MSG_FICHA = 'Olá {paciente}! Tudo bem? 🙂 Segue a ficha de cadastro em anexo — pode preencher e me devolver por aqui mesmo quando conseguir. Qualquer dúvida, é só chamar. {profissional}';
+const DEFAULT_MSG_FICHA = 'Olá {paciente}! Tudo bem? 🙂 Segue o link da ficha de cadastro para preencher: {link} Pode me devolver por aqui mesmo (foto ou PDF) quando conseguir. Qualquer dúvida, é só chamar. {profissional}';
 const DEFAULT_MSG_KIT = 'Olá {paciente}! Seja bem-vindo(a)! 🌱 Preparei um kit de boas-vindas com informações importantes para começarmos: {link} Qualquer dúvida, estou por aqui. {profissional}';
 let finSelecionadas = new Set();
 let state = load();
@@ -482,7 +486,7 @@ function load(){
 }
 function normalize(d){
   return {
-    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
+    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'https://carlagabriellethomas.com/assets/kit-cf052734cbc6.pdf', linkFicha:'https://carlagabriellethomas.com/assets/ficha-17c1404b4cf9.pdf', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
     pacientes: d.pacientes || [],
     consultas: d.consultas || []
   };
@@ -1282,8 +1286,10 @@ function refreshDocumentos(id){
   if(el) el.innerHTML=documentosBlockHtml(p, id);
 }
 function buildMsgFicha(p){
+  const link=(state.config.linkFicha||'').trim();
   return (state.config.mensagemFicha||DEFAULT_MSG_FICHA)
     .replaceAll('{paciente}', p.nome.split(' ')[0])
+    .replaceAll('{link}', link)
     .replaceAll('{profissional}', state.config.profissional||'');
 }
 function buildMsgKit(p){
@@ -1650,6 +1656,7 @@ function fillConfig(){
   document.getElementById('cfgMsgLembrete').value=state.config.mensagemLembrete||DEFAULT_MSG_LEMBRETE;
   document.getElementById('cfgMsgPag').value=state.config.mensagemPag||DEFAULT_MSG_PAG;
   document.getElementById('cfgPix').value=state.config.chavePix||'';
+  document.getElementById('cfgLinkFicha').value=state.config.linkFicha||'';
   document.getElementById('cfgLinkKit').value=state.config.linkKit||'';
   document.getElementById('cfgMsgFicha').value=state.config.mensagemFicha||DEFAULT_MSG_FICHA;
   document.getElementById('cfgMsgKit').value=state.config.mensagemKit||DEFAULT_MSG_KIT;
@@ -1672,7 +1679,8 @@ function updatePreview(){
   const exp=document.getElementById('cfgMsgPag').value.replaceAll('{paciente}','Maria').replaceAll('{data}','25/07/2026')
     .replaceAll('{valor}','R$ 200,00').replaceAll('{pix}', pix?`Chave Pix: ${pix}. `:'').replaceAll('{profissional}',prof);
   document.getElementById('msgPagPreview').textContent=exp;
-  const exf=document.getElementById('cfgMsgFicha').value.replaceAll('{paciente}','Maria').replaceAll('{profissional}',prof);
+  const linkF=document.getElementById('cfgLinkFicha').value.trim()||'[link da ficha]';
+  const exf=document.getElementById('cfgMsgFicha').value.replaceAll('{paciente}','Maria').replaceAll('{link}',linkF).replaceAll('{profissional}',prof);
   document.getElementById('msgFichaPreview').textContent=exf;
   const linkK=document.getElementById('cfgLinkKit').value.trim()||'[link do kit]';
   const exk=document.getElementById('cfgMsgKit').value.replaceAll('{paciente}','Maria').replaceAll('{link}',linkK).replaceAll('{profissional}',prof);
@@ -1686,6 +1694,7 @@ function saveConfig(){
   state.config.mensagemLembrete=document.getElementById('cfgMsgLembrete').value.trim()||DEFAULT_MSG_LEMBRETE;
   state.config.mensagemPag=document.getElementById('cfgMsgPag').value.trim()||DEFAULT_MSG_PAG;
   state.config.chavePix=document.getElementById('cfgPix').value.trim();
+  state.config.linkFicha=document.getElementById('cfgLinkFicha').value.trim();
   state.config.linkKit=document.getElementById('cfgLinkKit').value.trim();
   state.config.mensagemFicha=document.getElementById('cfgMsgFicha').value.trim()||DEFAULT_MSG_FICHA;
   state.config.mensagemKit=document.getElementById('cfgMsgKit').value.trim()||DEFAULT_MSG_KIT;
@@ -1698,7 +1707,7 @@ function saveConfig(){
   save(); render(); resetIdleTimer(); toast('Ajustes salvos ✓');
 }
 document.getElementById('view-ajustes').addEventListener('input',e=>{
-  if(['cfgMsg','cfgMsgLembrete','cfgMsgPag','cfgMsgFicha','cfgMsgKit','cfgLinkKit','cfgProf','cfgPix'].includes(e.target.id)) updatePreview();
+  if(['cfgMsg','cfgMsgLembrete','cfgMsgPag','cfgMsgFicha','cfgMsgKit','cfgLinkKit','cfgLinkFicha','cfgProf','cfgPix'].includes(e.target.id)) updatePreview();
 });
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
