@@ -387,6 +387,32 @@
       <div style="margin-top:14px"><button class="btn primary" onclick="saveConfig()">Salvar ajustes</button></div>
     </div>
     <div class="card pad" style="margin-bottom:18px">
+      <h3 style="font-size:15px;margin-bottom:6px">Ficha de Cadastro e Kit de Boas-vindas</h3>
+      <p style="color:var(--muted);font-size:12.5px;margin:0 0 12px">
+        Os botões de envio ficam no cadastro de cada paciente, na seção "Documentos". Marcadores: <code>{paciente}</code>, <code>{profissional}</code>, e <code>{link}</code> (só na mensagem do kit).
+      </p>
+      <div class="field" style="margin-bottom:12px">
+        <label>Link do Kit de Boas-vindas (opcional)</label>
+        <input id="cfgLinkKit" placeholder="Ex: link do Google Drive ou do seu site">
+      </div>
+      <div class="field" style="margin-bottom:6px">
+        <label>Mensagem ao enviar a Ficha de Cadastro</label>
+        <textarea id="cfgMsgFicha" rows="3"></textarea>
+        <span class="hint">O WhatsApp não anexa o PDF sozinho — depois de abrir a conversa, anexe o arquivo da ficha manualmente.</span>
+      </div>
+      <div style="margin-bottom:14px;padding:12px 14px;background:var(--brand-soft);border-radius:10px;font-size:13px;color:var(--brand-dark)">
+        <strong>Prévia:</strong> <span id="msgFichaPreview"></span>
+      </div>
+      <div class="field" style="margin-bottom:6px">
+        <label>Mensagem ao enviar o Kit de Boas-vindas</label>
+        <textarea id="cfgMsgKit" rows="3"></textarea>
+      </div>
+      <div style="margin-top:10px;padding:12px 14px;background:var(--brand-soft);border-radius:10px;font-size:13px;color:var(--brand-dark)">
+        <strong>Prévia:</strong> <span id="msgKitPreview"></span>
+      </div>
+      <div style="margin-top:14px"><button class="btn primary" onclick="saveConfig()">Salvar ajustes</button></div>
+    </div>
+    <div class="card pad" style="margin-bottom:18px">
       <h3 style="font-size:15px;margin-bottom:14px">Senha de acesso</h3>
       <div class="grid2">
         <div class="field"><label>Senha atual</label><input id="pwAtual" type="password"></div>
@@ -443,6 +469,8 @@ const DEFAULT_MSG = 'Olá {paciente}! Aqui é {profissional}. Passando para conf
 const DEFAULT_MSG_PAG = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento da sessão do dia {data}, no valor de {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
 const DEFAULT_MSG_LEMBRETE = 'Olá {paciente}! Passando para lembrar da sua consulta amanhã, dia {data} às {hora}. Até lá! {profissional}';
 const DEFAULT_MSG_PAG_MULTI = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento de {qtd} sessões: {lista}. Total: {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
+const DEFAULT_MSG_FICHA = 'Olá {paciente}! Tudo bem? 🙂 Segue a ficha de cadastro em anexo — pode preencher e me devolver por aqui mesmo quando conseguir. Qualquer dúvida, é só chamar. {profissional}';
+const DEFAULT_MSG_KIT = 'Olá {paciente}! Seja bem-vindo(a)! 🌱 Preparei um kit de boas-vindas com informações importantes para começarmos: {link} Qualquer dúvida, estou por aqui. {profissional}';
 let finSelecionadas = new Set();
 let state = load();
 function load(){
@@ -454,7 +482,7 @@ function load(){
 }
 function normalize(d){
   return {
-    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
+    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
     pacientes: d.pacientes || [],
     consultas: d.consultas || []
   };
@@ -1207,6 +1235,121 @@ function imprimirFicha(id){
   win.document.close();
   setTimeout(()=>{ try{ win.focus(); win.print(); }catch(e){} }, 400);
 }
+function documentosBlockHtml(p, id){
+  const d=p.documentos||{};
+  const fichaStatus=d.fichaStatus||'pendente';
+  const fichaBadge = fichaStatus==='recebida'?'<span class="badge confirmada">Recebida</span>'
+    : fichaStatus==='enviada'?'<span class="badge agendada">Enviada</span>'
+    : '<span class="badge cancelada">Pendente</span>';
+  const kitStatus=d.kitStatus||'pendente';
+  const kitBadge = kitStatus==='enviada'?'<span class="badge agendada">Enviada</span>':'<span class="badge cancelada">Pendente</span>';
+  return `<div style="display:flex;flex-direction:column;gap:12px">
+    <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+      <div class="row between" style="margin-bottom:6px">
+        <strong style="font-size:13.5px">Ficha de Cadastro</strong>
+        ${fichaBadge}
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+        ${!d.fichaEnviadaEm && !d.fichaRecebidaEm?'Ainda não enviada.':''}${d.fichaEnviadaEm?`Enviada em ${fmtDateNum(d.fichaEnviadaEm)}. `:''}${d.fichaRecebidaEm?`Recebida em ${fmtDateNum(d.fichaRecebidaEm)}.`:''}
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        ${p.telefone?`<button class="btn wa sm" type="button" onclick="enviarFichaWhats('${id}')">Enviar por WhatsApp</button>`:'<span style="font-size:12px;color:var(--muted)">Cadastre um telefone para enviar</span>'}
+        <label class="btn sm" style="cursor:pointer">📎 Anexar ficha preenchida
+          <input type="file" accept=".pdf,image/*" style="display:none" onchange="anexarFichaArquivo('${id}', this)">
+        </label>
+      </div>
+      ${d.fichaArquivoNome?`<div style="margin-top:8px;font-size:12.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        📄 ${escapeHtml(d.fichaArquivoNome)}
+        <button class="btn ghost sm" type="button" onclick="baixarFichaArquivo('${id}')">Baixar</button>
+        <button class="btn ghost sm" type="button" onclick="removerFichaArquivo('${id}')">Remover</button>
+      </div>`:''}
+    </div>
+    <div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px">
+      <div class="row between" style="margin-bottom:6px">
+        <strong style="font-size:13.5px">Kit de Boas-vindas</strong>
+        ${kitBadge}
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
+        ${d.kitEnviadoEm?`Enviado em ${fmtDateNum(d.kitEnviadoEm)}.`:'Ainda não enviado.'}
+      </div>
+      ${p.telefone?`<button class="btn wa sm" type="button" onclick="enviarKitWhats('${id}')">Enviar por WhatsApp</button>`:'<span style="font-size:12px;color:var(--muted)">Cadastre um telefone para enviar</span>'}
+    </div>
+  </div>`;
+}
+function refreshDocumentos(id){
+  const p=paciente(id); if(!p) return;
+  const el=document.getElementById('documentosBlock');
+  if(el) el.innerHTML=documentosBlockHtml(p, id);
+}
+function buildMsgFicha(p){
+  return (state.config.mensagemFicha||DEFAULT_MSG_FICHA)
+    .replaceAll('{paciente}', p.nome.split(' ')[0])
+    .replaceAll('{profissional}', state.config.profissional||'');
+}
+function buildMsgKit(p){
+  const link=(state.config.linkKit||'').trim();
+  return (state.config.mensagemKit||DEFAULT_MSG_KIT)
+    .replaceAll('{paciente}', p.nome.split(' ')[0])
+    .replaceAll('{link}', link)
+    .replaceAll('{profissional}', state.config.profissional||'');
+}
+function enviarFichaWhats(id){
+  const p=paciente(id); if(!p) return;
+  if(!p.telefone){ toast('Este paciente não tem telefone cadastrado.'); return; }
+  const phone=normalizePhone(p.telefone);
+  const url=`https://wa.me/${phone}?text=${encodeURIComponent(buildMsgFicha(p))}`;
+  window.open(url,'_blank');
+  if(!p.documentos) p.documentos={};
+  if(p.documentos.fichaStatus!=='recebida') p.documentos.fichaStatus='enviada';
+  if(!p.documentos.fichaEnviadaEm) p.documentos.fichaEnviadaEm=todayStr();
+  save(); refreshDocumentos(id);
+  toast('Abrindo WhatsApp… lembre de anexar o PDF da ficha na conversa.');
+}
+function enviarKitWhats(id){
+  const p=paciente(id); if(!p) return;
+  if(!p.telefone){ toast('Este paciente não tem telefone cadastrado.'); return; }
+  const phone=normalizePhone(p.telefone);
+  const url=`https://wa.me/${phone}?text=${encodeURIComponent(buildMsgKit(p))}`;
+  window.open(url,'_blank');
+  if(!p.documentos) p.documentos={};
+  p.documentos.kitStatus='enviada';
+  if(!p.documentos.kitEnviadoEm) p.documentos.kitEnviadoEm=todayStr();
+  save(); refreshDocumentos(id);
+  toast('Abrindo WhatsApp ✓');
+}
+function anexarFichaArquivo(id, inputEl){
+  const file=inputEl.files && inputEl.files[0]; if(!file) return;
+  if(file.size > 2*1024*1024){ toast('Arquivo muito grande (máx. 2MB). Tente um arquivo menor.'); inputEl.value=''; return; }
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const p=paciente(id); if(!p) return;
+    if(!p.documentos) p.documentos={};
+    p.documentos.fichaArquivoNome=file.name;
+    p.documentos.fichaArquivoData=reader.result;
+    p.documentos.fichaStatus='recebida';
+    p.documentos.fichaRecebidaEm=todayStr();
+    save(); refreshDocumentos(id);
+    toast('Ficha anexada ✓');
+  };
+  reader.onerror=()=>toast('Não foi possível ler o arquivo.');
+  reader.readAsDataURL(file);
+}
+function baixarFichaArquivo(id){
+  const p=paciente(id); if(!p || !p.documentos || !p.documentos.fichaArquivoData) return;
+  const a=document.createElement('a');
+  a.href=p.documentos.fichaArquivoData;
+  a.download=p.documentos.fichaArquivoNome||'ficha-cadastro';
+  a.click();
+}
+function removerFichaArquivo(id){
+  const p=paciente(id); if(!p) return;
+  if(!confirm('Remover o arquivo anexado da ficha?')) return;
+  if(!p.documentos) p.documentos={};
+  p.documentos.fichaArquivoNome=null;
+  p.documentos.fichaArquivoData=null;
+  save(); refreshDocumentos(id);
+  toast('Anexo removido');
+}
 function togglePago(id){
   const c=state.consultas.find(x=>x.id===id); if(!c) return;
   c.pago=!c.pago;
@@ -1286,6 +1429,10 @@ function openPaciente(id){
       </div>
       <div class="field"><label>Observações</label><textarea id="pObs" placeholder="Anotações gerais (opcional)">${escapeHtml(p.obs||'')}</textarea></div>
       ${id?`
+      <div class="field">
+        <label>Documentos</label>
+        <div id="documentosBlock">${documentosBlockHtml(p, id)}</div>
+      </div>
       <div class="field">
         <label>Prontuário / Evolução</label>
         <div id="prontuarioList" style="max-height:220px;overflow-y:auto;border:1px solid var(--line);border-radius:9px;padding:10px;background:var(--surface-2)">${prontuarioListHtml(p)}</div>
@@ -1503,6 +1650,9 @@ function fillConfig(){
   document.getElementById('cfgMsgLembrete').value=state.config.mensagemLembrete||DEFAULT_MSG_LEMBRETE;
   document.getElementById('cfgMsgPag').value=state.config.mensagemPag||DEFAULT_MSG_PAG;
   document.getElementById('cfgPix').value=state.config.chavePix||'';
+  document.getElementById('cfgLinkKit').value=state.config.linkKit||'';
+  document.getElementById('cfgMsgFicha').value=state.config.mensagemFicha||DEFAULT_MSG_FICHA;
+  document.getElementById('cfgMsgKit').value=state.config.mensagemKit||DEFAULT_MSG_KIT;
   const vpt=state.config.valoresPorTipo||{};
   document.getElementById('cfgValAvaliacao').value=vpt.avaliacao||'';
   document.getElementById('cfgValSupervisao').value=vpt.supervisao||'';
@@ -1522,6 +1672,11 @@ function updatePreview(){
   const exp=document.getElementById('cfgMsgPag').value.replaceAll('{paciente}','Maria').replaceAll('{data}','25/07/2026')
     .replaceAll('{valor}','R$ 200,00').replaceAll('{pix}', pix?`Chave Pix: ${pix}. `:'').replaceAll('{profissional}',prof);
   document.getElementById('msgPagPreview').textContent=exp;
+  const exf=document.getElementById('cfgMsgFicha').value.replaceAll('{paciente}','Maria').replaceAll('{profissional}',prof);
+  document.getElementById('msgFichaPreview').textContent=exf;
+  const linkK=document.getElementById('cfgLinkKit').value.trim()||'[link do kit]';
+  const exk=document.getElementById('cfgMsgKit').value.replaceAll('{paciente}','Maria').replaceAll('{link}',linkK).replaceAll('{profissional}',prof);
+  document.getElementById('msgKitPreview').textContent=exk;
 }
 function saveConfig(){
   state.config.profissional=document.getElementById('cfgProf').value.trim();
@@ -1531,6 +1686,9 @@ function saveConfig(){
   state.config.mensagemLembrete=document.getElementById('cfgMsgLembrete').value.trim()||DEFAULT_MSG_LEMBRETE;
   state.config.mensagemPag=document.getElementById('cfgMsgPag').value.trim()||DEFAULT_MSG_PAG;
   state.config.chavePix=document.getElementById('cfgPix').value.trim();
+  state.config.linkKit=document.getElementById('cfgLinkKit').value.trim();
+  state.config.mensagemFicha=document.getElementById('cfgMsgFicha').value.trim()||DEFAULT_MSG_FICHA;
+  state.config.mensagemKit=document.getElementById('cfgMsgKit').value.trim()||DEFAULT_MSG_KIT;
   state.config.valoresPorTipo={
     avaliacao: parseFloat(document.getElementById('cfgValAvaliacao').value)||0,
     supervisao: parseFloat(document.getElementById('cfgValSupervisao').value)||0,
@@ -1540,7 +1698,7 @@ function saveConfig(){
   save(); render(); resetIdleTimer(); toast('Ajustes salvos ✓');
 }
 document.getElementById('view-ajustes').addEventListener('input',e=>{
-  if(['cfgMsg','cfgMsgLembrete','cfgMsgPag','cfgProf','cfgPix'].includes(e.target.id)) updatePreview();
+  if(['cfgMsg','cfgMsgLembrete','cfgMsgPag','cfgMsgFicha','cfgMsgKit','cfgLinkKit','cfgProf','cfgPix'].includes(e.target.id)) updatePreview();
 });
 function exportData(){
   const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
