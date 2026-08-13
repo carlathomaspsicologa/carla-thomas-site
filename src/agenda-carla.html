@@ -1229,10 +1229,12 @@ function gerarRecibo(ids){
   <div class="no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
   </body></html>`);
   win.document.close();
-  const bg=new Image(); let printed=false;
+  const bg=new Image(); const sig=new Image(); let printed=false, loaded=0;
   const doPrint=()=>{ if(printed) return; printed=true; try{ win.focus(); win.print(); }catch(e){} };
-  bg.onload=doPrint; bg.onerror=doPrint; bg.src='https://carlagabriellethomas.com/assets/papel-timbrado.png';
-  setTimeout(doPrint, 1200);
+  const onRes=()=>{ loaded++; if(loaded>=2) doPrint(); };
+  bg.onload=onRes; bg.onerror=onRes; bg.src='https://carlagabriellethomas.com/assets/papel-timbrado.png';
+  sig.onload=onRes; sig.onerror=onRes; sig.src='https://carlagabriellethomas.com/assets/assinatura.png';
+  setTimeout(doPrint, 1500);
 }
 function imprimirFicha(id){
   const p=paciente(id); if(!p) return;
