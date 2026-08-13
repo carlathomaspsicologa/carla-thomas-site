@@ -626,11 +626,11 @@ function toast(msg){
 /* Tipos de atendimento */
 const TIPOS_ATENDIMENTO=[
   {key:'avaliacao',label:'Avaliação'},
-  {key:'regular',label:'Sessão regular'},
+  {key:'regular',label:'Atendimento psicológico'},
   {key:'supervisao',label:'Supervisão'},
   {key:'mentoria',label:'Mentoria'}
 ];
-function tipoLabel(key){ const t=TIPOS_ATENDIMENTO.find(x=>x.key===key); return t? t.label : 'Sessão regular'; }
+function tipoLabel(key){ const t=TIPOS_ATENDIMENTO.find(x=>x.key===key); return t? t.label : 'Atendimento psicológico'; }
 const FREQ_LABEL={semanal:'Semanal',quinzenal:'Quinzenal',mensal:'Mensal'};
 function tipoEfetivo(c){
   const p=paciente(c.pacienteId);
@@ -1393,12 +1393,13 @@ overlay.addEventListener('click',e=>{ if(e.target===overlay) closeModal(); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
 /* --- Paciente --- */
 function openPaciente(id){
-  const p = id? paciente(id) : {nome:'',telefone:'',email:'',valor:'',obs:'',cpf:'',notaEmitida:false,tipoAtendimento:'regular',nascimento:'',encaminhadoPor:'',menorIdade:false,responsavelNome:'',responsavelTel:'',responsavelParentesco:'',frequencia:'semanal'};
+  const p = id? paciente(id) : {nome:'',telefone:'',email:'',valor:'',obs:'',cpf:'',notaEmitida:false,tipoAtendimento:'regular',nascimento:'',encaminhadoPor:'',menorIdade:false,responsavelNome:'',responsavelTel:'',responsavelParentesco:'',frequencia:'semanal',apelido:'',cidadeEstadoPais:'',fusoHorario:'',telefoneAlt:'',endereco:'',emergenciaNome:'',emergenciaTelefone:'',diaHorarioFixo:'',inicioEm:'',formaPagamento:'avulsa'};
   modal.innerHTML=`
     <div class="modal-head"><h3>${id?'Editar paciente':'Novo paciente'}</h3>
       <button class="close-x" onclick="closeModal()">×</button></div>
     <div class="modal-body">
       <div class="field"><label>Nome completo *</label><input id="pNome" value="${escapeAttr(p.nome)}" placeholder="Nome do paciente"></div>
+      <div class="field"><label>Como prefere ser chamado(a)</label><input id="pApelido" value="${escapeAttr(p.apelido||'')}" placeholder="Apelido ou como prefere ser chamado(a)"></div>
       <div class="grid2">
         <div class="field"><label>Telefone (WhatsApp)</label><input id="pTel" value="${escapeAttr(p.telefone)}" placeholder="(11) 98765-4321"></div>
         <div class="field"><label>Valor da sessão (R$)</label><input id="pValor" type="number" step="0.01" value="${p.valor??''}" placeholder="200"></div>
@@ -1430,6 +1431,27 @@ function openPaciente(id){
         <div class="field"><label>Data de nascimento</label><input id="pNascimento" type="date" value="${p.nascimento||''}"></div>
       </div>
       <div class="field"><label>Encaminhado por</label><input id="pEncaminhado" value="${escapeAttr(p.encaminhadoPor||'')}" placeholder="Ex: indicação de outro paciente, Instagram…"></div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:10px">Da ficha de cadastro</div>
+      <div class="grid2">
+        <div class="field"><label>Cidade, estado e país</label><input id="pCidade" value="${escapeAttr(p.cidadeEstadoPais||'')}" placeholder="Ex: Porto Alegre, RS, Brasil"></div>
+        <div class="field"><label>Fuso horário</label><input id="pFuso" value="${escapeAttr(p.fusoHorario||'')}" placeholder="Ex: GMT-3"></div>
+      </div>
+      <div class="field"><label>Telefone alternativo</label><input id="pTelAlt" value="${escapeAttr(p.telefoneAlt||'')}" placeholder="Caso a conexão caia"></div>
+      <div class="field"><label>Endereço completo (para emissão de recibo)</label><input id="pEndereco" value="${escapeAttr(p.endereco||'')}" placeholder="Rua, número, bairro, cidade, CEP"></div>
+      <div class="grid2">
+        <div class="field"><label>Contato de emergência (nome e relação)</label><input id="pEmergNome" value="${escapeAttr(p.emergenciaNome||'')}" placeholder="Ex: Maria (mãe)"></div>
+        <div class="field"><label>Telefone de emergência</label><input id="pEmergTel" value="${escapeAttr(p.emergenciaTelefone||'')}"></div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Dia e horário fixos</label><input id="pDiaHorario" value="${escapeAttr(p.diaHorarioFixo||'')}" placeholder="Ex: Terças, 14h"></div>
+        <div class="field"><label>Início em</label><input id="pInicioEm" type="date" value="${p.inicioEm||''}"></div>
+      </div>
+      <div class="field"><label>Forma de pagamento</label>
+        <select id="pFormaPag">
+          <option value="avulsa" ${(p.formaPagamento||'avulsa')==='avulsa'?'selected':''}>Sessão avulsa (paga até 24h antes)</option>
+          <option value="pacote" ${p.formaPagamento==='pacote'?'selected':''}>Pacote mensal (pago no início do mês)</option>
+        </select>
+      </div>
       ${id?`<div style="font-size:12.5px;color:var(--muted)">Faltas: <strong>${contarStatus(id,'faltou')}</strong> · Cancelamentos: <strong>${contarStatus(id,'cancelada')}</strong></div>`:''}
       <div class="field">
         <label style="display:flex;align-items:center;gap:8px;font-weight:550;font-size:13.5px">
@@ -1512,6 +1534,7 @@ function savePaciente(id){
   const nome=document.getElementById('pNome').value.trim();
   if(!nome){ toast('Informe o nome do paciente.'); return; }
   const data={ nome, telefone:document.getElementById('pTel').value.trim(),
+    apelido:document.getElementById('pApelido').value.trim(),
     email:document.getElementById('pEmail').value.trim(),
     valor:parseFloat(document.getElementById('pValor').value)||0,
     frequencia:document.getElementById('pFrequencia').value,
@@ -1524,6 +1547,15 @@ function savePaciente(id){
     responsavelNome:document.getElementById('pRespNome').value.trim(),
     responsavelTel:document.getElementById('pRespTel').value.trim(),
     responsavelParentesco:document.getElementById('pRespParentesco').value.trim(),
+    cidadeEstadoPais:document.getElementById('pCidade').value.trim(),
+    fusoHorario:document.getElementById('pFuso').value.trim(),
+    telefoneAlt:document.getElementById('pTelAlt').value.trim(),
+    endereco:document.getElementById('pEndereco').value.trim(),
+    emergenciaNome:document.getElementById('pEmergNome').value.trim(),
+    emergenciaTelefone:document.getElementById('pEmergTel').value.trim(),
+    diaHorarioFixo:document.getElementById('pDiaHorario').value.trim(),
+    inicioEm:document.getElementById('pInicioEm').value,
+    formaPagamento:document.getElementById('pFormaPag').value,
     obs:document.getElementById('pObs').value.trim() };
   if(id){ Object.assign(paciente(id), data); }
   else{ state.pacientes.push(Object.assign({id:uid()}, data)); }
