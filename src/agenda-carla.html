@@ -995,7 +995,7 @@ function renderFinanceiro(){
   const rows=items.map(c=>{
     const p=paciente(c.pacienteId);
     const podeCobrar = !c.pago && p && p.telefone;
-    const podeSelecionar = !c.pago;
+    const podeSelecionar = true;
     const notaBadge = c.pago
       ? `<span class="badge ${c.notaEmitida?'confirmada':'cancelada'}" style="cursor:pointer" onclick="toggleNotaConsulta('${c.id}')" title="Clique para alternar">${c.notaEmitida?'✓ Emitida':'Pendente'}</span>`
       : '<span style="color:var(--muted)">—</span>';
@@ -1017,19 +1017,24 @@ function renderFinanceiro(){
     </td>
   </tr>`;}).join('');
   const totalFiltro=items.reduce((s,c)=>s+consultaValor(c),0);
-  const idsVisiveisPendentes=items.filter(c=>!c.pago).map(c=>c.id);
-  [...finSelecionadas].forEach(id=>{ if(!idsVisiveisPendentes.includes(id)) finSelecionadas.delete(id); });
+  const idsVisiveis=items.map(c=>c.id);
+  [...finSelecionadas].forEach(id=>{ if(!idsVisiveis.includes(id)) finSelecionadas.delete(id); });
   const qtdSel=finSelecionadas.size;
   const totalSel=[...finSelecionadas].reduce((s,id)=>{ const c=state.consultas.find(x=>x.id===id); return s+(c?consultaValor(c):0); },0);
-  const todasMarcadas = idsVisiveisPendentes.length>0 && idsVisiveisPendentes.every(id=>finSelecionadas.has(id));
-  const bulkBar = idsVisiveisPendentes.length? `<div class="row between" style="padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px">
+  const todasMarcadas = idsVisiveis.length>0 && idsVisiveis.every(id=>finSelecionadas.has(id));
+  const selArr=[...finSelecionadas].map(id=>state.consultas.find(x=>x.id===id)).filter(Boolean);
+  const todasPagas = selArr.length>0 && selArr.every(c=>c.pago);
+  const todasPendentes = selArr.length>0 && selArr.every(c=>!c.pago);
+  const bulkBar = idsVisiveis.length? `<div class="row between" style="padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px">
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer">
       <input type="checkbox" ${todasMarcadas?'checked':''} onchange="toggleFinSelAll(this.checked)" style="width:16px;height:16px">
-      ${qtdSel?`${qtdSel} selecionada(s) · ${BRL(totalSel)}`:'Selecionar pendentes para cobrar juntas'}
+      ${qtdSel?`${qtdSel} selecionada(s) · ${BRL(totalSel)}`:'Selecionar para cobrar ou gerar recibo juntas'}
     </label>
-    ${qtdSel?`<div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn wa sm" onclick="cobrarSelecionadasWhats()">Cobrar selecionadas (WhatsApp)</button>
-      <button class="btn primary sm" onclick="marcarSelecionadasPagas()">Marcar todas como pagas</button>
+    ${qtdSel?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      ${todasPendentes?`<button class="btn wa sm" onclick="cobrarSelecionadasWhats()">Cobrar selecionadas (WhatsApp)</button>
+      <button class="btn primary sm" onclick="marcarSelecionadasPagas()">Marcar todas como pagas</button>`:''}
+      ${todasPagas?`<button class="btn sm" onclick="imprimirReciboSelecionadas()">🖨 Gerar recibo (selecionadas)</button>`:''}
+      ${!todasPendentes&&!todasPagas?`<span style="font-size:12px;color:var(--muted)">Selecione só pagas (recibo) ou só pendentes (cobrança)</span>`:''}
     </div>`:''}
   </div>`:'';
   tbl.innerHTML=`${bulkBar}<table><thead><tr><th></th><th>Data</th><th>Paciente</th>
@@ -1045,9 +1050,10 @@ function toggleFinSel(id){
 }
 function toggleFinSelAll(checked){
   const fMonth=document.getElementById('finMonth').value, fStatus=document.getElementById('finStatus').value;
-  let items=sortedConsultas().reverse().filter(c=>c.status!=='cancelada' && !c.pago);
+  let items=sortedConsultas().reverse().filter(c=>c.status!=='cancelada');
   if(fMonth) items=items.filter(c=>c.data.slice(0,7)===fMonth);
-  if(fStatus==='pago') items=[];
+  if(fStatus==='pago') items=items.filter(c=>c.pago);
+  if(fStatus==='pendente') items=items.filter(c=>!c.pago);
   items.forEach(c=>{ if(checked) finSelecionadas.add(c.id); else finSelecionadas.delete(c.id); });
   renderFinanceiro();
 }
@@ -1098,6 +1104,16 @@ function marcarSelecionadasPagas(){
   finSelecionadas.clear();
   save(); render();
   toast(`${n} consulta(s) marcada(s) como pagas ✓`);
+}
+function imprimirReciboSelecionadas(){
+  if(!finSelecionadas.size){ toast('Selecione ao menos uma consulta.'); return; }
+  const selecionadas=state.consultas.filter(c=>finSelecionadas.has(c.id));
+  if(!selecionadas.length || !selecionadas.every(c=>c.pago)){ toast('Selecione apenas consultas pagas para gerar recibo.'); return; }
+  const porPaciente={};
+  selecionadas.forEach(c=>{ (porPaciente[c.pacienteId]=porPaciente[c.pacienteId]||[]).push(c.id); });
+  const pacIds=Object.keys(porPaciente);
+  pacIds.forEach((pacId,idx)=>{ setTimeout(()=>gerarRecibo(porPaciente[pacId]), idx*400); });
+  toast(`Gerando recibo para ${pacIds.length} paciente(s)…`);
 }
 function renderChart(){
   const chart=document.getElementById('finChart'), xax=document.getElementById('finChartX');
@@ -1160,11 +1176,18 @@ function renderInadimplencia(){
     <span><strong>${BRL(r.total)}</strong> <span style="color:var(--warn)">· ${r.dias} dia(s)</span></span>
   </div>`).join('');
 }
-function imprimirRecibo(id){
-  const c=state.consultas.find(x=>x.id===id); if(!c) return;
-  const p=paciente(c.pacienteId);
+function imprimirRecibo(id){ gerarRecibo([id]); }
+function gerarRecibo(ids){
+  const cs=ids.map(x=>state.consultas.find(c=>c.id===x)).filter(Boolean);
+  if(!cs.length) return;
+  cs.sort((a,b)=>a.data.localeCompare(b.data));
+  const c0=cs[0];
+  const p=paciente(c0.pacienteId);
   const prof=state.config.profissional||'';
-  const valor=consultaValor(c);
+  const total=cs.reduce((s,c)=>s+consultaValor(c),0);
+  const formas=[...new Set(cs.map(c=>c.forma).filter(Boolean))];
+  const formaTxt=formas.length?formas.join(', '):'—';
+  const linhasSessoes=cs.map(c=>`<tr><td>${fmtDateNum(c.data)}</td><td>${escapeHtml(tipoLabel(tipoEfetivo(c)))}</td><td class="num">${BRL(consultaValor(c))}</td></tr>`).join('');
   const win=window.open('','_blank');
   if(!win){ toast('Permita pop-ups para gerar o recibo.'); return; }
   win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Recibo</title>
@@ -1179,20 +1202,29 @@ function imprimirRecibo(id){
     .linha{margin:13px 0}
     .lbl{color:#54615f;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
     .val{font-size:14.5px;font-weight:600}
-    .valor{font-size:21px;font-weight:700;color:#2f7d72;margin-top:18px}
-    .assinatura{margin-top:44px;border-top:1px solid #333;padding-top:6px;max-width:270px;text-align:center;font-size:12.5px}
+    .sessoes{width:100%;border-collapse:collapse;margin:16px 0}
+    .sessoes th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#54615f;border-bottom:1px solid #d3dbd8;padding:6px 4px}
+    .sessoes td{padding:7px 4px;border-bottom:1px solid #eee;font-size:13.5px}
+    .sessoes td.num,.sessoes th.num{text-align:right}
+    .valor{font-size:21px;font-weight:700;color:#2f7d72;margin-top:14px}
+    .assinatura-wrap{margin-top:46px;max-width:270px}
+    .assinatura-img{max-height:64px;max-width:260px;display:block;margin-bottom:2px}
+    .assinatura{border-top:1px solid #333;padding-top:6px;text-align:center;font-size:12.5px}
     .no-print{padding:16px 26mm}
     @media print{ .no-print{display:none} }
   </style></head><body>
   <div class="folha">
   <h1>Recibo de pagamento</h1>
-  <div class="linha"><div class="lbl">Paciente</div><div class="val">${escapeHtml(pacienteNome(c.pacienteId))}</div></div>
+  <div class="linha"><div class="lbl">Paciente</div><div class="val">${escapeHtml(pacienteNome(c0.pacienteId))}</div></div>
   ${p&&p.cpf?`<div class="linha"><div class="lbl">CPF</div><div class="val">${escapeHtml(p.cpf)}</div></div>`:''}
-  <div class="linha"><div class="lbl">Data da sessão</div><div class="val">${fmtDateNum(c.data)}</div></div>
-  <div class="linha"><div class="lbl">Tipo de atendimento</div><div class="val">${tipoLabel(tipoEfetivo(c))}</div></div>
-  <div class="linha"><div class="lbl">Forma de pagamento</div><div class="val">${c.forma||'—'}</div></div>
-  <div class="valor">${BRL(valor)}</div>
-  <div class="assinatura">${escapeHtml(prof)}</div>
+  <table class="sessoes"><thead><tr><th>Data</th><th>Tipo de atendimento</th><th class="num">Valor</th></tr></thead>
+  <tbody>${linhasSessoes}</tbody></table>
+  <div class="linha"><div class="lbl">Forma de pagamento</div><div class="val">${escapeHtml(formaTxt)}</div></div>
+  <div class="valor">Total: ${BRL(total)}</div>
+  <div class="assinatura-wrap">
+    <img class="assinatura-img" src="https://carlagabriellethomas.com/assets/assinatura.png" onerror="this.style.display='none'">
+    <div class="assinatura">${escapeHtml(prof)}</div>
+  </div>
   </div>
   <div class="no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
   </body></html>`);
