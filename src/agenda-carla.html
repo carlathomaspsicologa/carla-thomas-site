@@ -1169,15 +1169,21 @@ function imprimirRecibo(id){
   if(!win){ toast('Permita pop-ups para gerar o recibo.'); return; }
   win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Recibo</title>
   <style>
-    body{font-family:system-ui,sans-serif;max-width:600px;margin:40px auto;color:#12211f;line-height:1.6}
-    h1{font-size:18px;border-bottom:2px solid #2f7d72;padding-bottom:10px}
-    .linha{margin:14px 0}
-    .lbl{color:#54615f;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
-    .val{font-size:15px;font-weight:600}
-    .valor{font-size:22px;font-weight:700;color:#2f7d72;margin-top:20px}
-    .assinatura{margin-top:60px;border-top:1px solid #333;padding-top:6px;max-width:280px;text-align:center;font-size:13px}
+    @page{ size:A4; margin:0 }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;color:#12211f;line-height:1.6;width:210mm;min-height:297mm;background:#fff url('https://carlagabriellethomas.com/assets/papel-timbrado.png') top center/210mm 297mm no-repeat}
+    .folha{padding:60mm 26mm 0 26mm}
+    h1{font-size:17px;border-bottom:2px solid #2f7d72;padding-bottom:9px;margin:0 0 10px}
+    .linha{margin:13px 0}
+    .lbl{color:#54615f;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
+    .val{font-size:14.5px;font-weight:600}
+    .valor{font-size:21px;font-weight:700;color:#2f7d72;margin-top:18px}
+    .assinatura{margin-top:44px;border-top:1px solid #333;padding-top:6px;max-width:270px;text-align:center;font-size:12.5px}
+    .no-print{padding:16px 26mm}
     @media print{ .no-print{display:none} }
   </style></head><body>
+  <div class="folha">
   <h1>Recibo de pagamento</h1>
   <div class="linha"><div class="lbl">Paciente</div><div class="val">${escapeHtml(pacienteNome(c.pacienteId))}</div></div>
   ${p&&p.cpf?`<div class="linha"><div class="lbl">CPF</div><div class="val">${escapeHtml(p.cpf)}</div></div>`:''}
@@ -1186,7 +1192,8 @@ function imprimirRecibo(id){
   <div class="linha"><div class="lbl">Forma de pagamento</div><div class="val">${c.forma||'—'}</div></div>
   <div class="valor">${BRL(valor)}</div>
   <div class="assinatura">${escapeHtml(prof)}</div>
-  <div class="no-print" style="margin-top:30px"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+  </div>
+  <div class="no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
   </body></html>`);
   win.document.close();
   setTimeout(()=>{ try{ win.focus(); win.print(); }catch(e){} }, 400);
