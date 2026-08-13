@@ -1185,9 +1185,10 @@ function gerarRecibo(ids){
   const p=paciente(c0.pacienteId);
   const prof=state.config.profissional||'';
   const total=cs.reduce((s,c)=>s+consultaValor(c),0);
-  const formas=[...new Set(cs.map(c=>c.forma).filter(Boolean))];
-  const formaTxt=formas.length?formas.join(', '):'—';
-  const linhasSessoes=cs.map(c=>`<tr><td>${fmtDateNum(c.data)}</td><td>${escapeHtml(tipoLabel(tipoEfetivo(c)))}</td><td class="num">${BRL(consultaValor(c))}</td></tr>`).join('');
+  const datasFmt=cs.map(c=>fmtDateNum(c.data));
+  const datasTxt=datasFmt.length<=1?(datasFmt[0]||''):(datasFmt.slice(0,-1).join(', ')+' e '+datasFmt[datasFmt.length-1]);
+  const plural=cs.length>1;
+  const cpfTxt=p&&p.cpf?`, CPF ${escapeHtml(p.cpf)},`:',';
   const win=window.open('','_blank');
   if(!win){ toast('Permita pop-ups para gerar o recibo.'); return; }
   win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Recibo</title>
@@ -1198,32 +1199,25 @@ function gerarRecibo(ids){
     html{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
     body{font-family:system-ui,sans-serif;color:#12211f;line-height:1.6;width:210mm;min-height:297mm;background:#fff url('https://carlagabriellethomas.com/assets/papel-timbrado.png') top center/210mm 297mm no-repeat;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
     .folha{padding:60mm 26mm 0 26mm}
-    h1{font-size:17px;border-bottom:2px solid #2f7d72;padding-bottom:9px;margin:0 0 10px}
-    .linha{margin:13px 0}
-    .lbl{color:#54615f;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em}
-    .val{font-size:14.5px;font-weight:600}
-    .sessoes{width:100%;border-collapse:collapse;margin:16px 0}
-    .sessoes th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#54615f;border-bottom:1px solid #d3dbd8;padding:6px 4px}
-    .sessoes td{padding:7px 4px;border-bottom:1px solid #eee;font-size:13.5px}
-    .sessoes td.num,.sessoes th.num{text-align:right}
-    .valor{font-size:21px;font-weight:700;color:#2f7d72;margin-top:14px}
-    .assinatura-wrap{margin-top:46px;max-width:270px}
-    .assinatura-img{max-height:64px;max-width:260px;display:block;margin-bottom:2px}
-    .assinatura{border-top:1px solid #333;padding-top:6px;text-align:center;font-size:12.5px}
+    h1{font-size:17px;border-bottom:2px solid #2f7d72;padding-bottom:9px;margin:0 0 22px}
+    .declaracao{font-size:15px;line-height:1.9;text-align:justify;margin:0}
+    .declaracao strong{font-weight:700}
+    .assinatura-wrap{margin:64px auto 0;width:280px;text-align:center}
+    .assinatura-img{max-height:70px;max-width:260px;display:block;margin:0 auto 4px}
+    .assinatura-linha{border-top:1px solid #333;width:100%}
+    .assinatura-nome{padding-top:7px;font-size:13px;font-weight:700}
+    .assinatura-crp{font-size:11.5px;color:#54615f;margin-top:2px}
     .no-print{padding:16px 26mm}
     @media print{ .no-print{display:none} }
   </style></head><body>
   <div class="folha">
   <h1>Recibo de pagamento</h1>
-  <div class="linha"><div class="lbl">Paciente</div><div class="val">${escapeHtml(pacienteNome(c0.pacienteId))}</div></div>
-  ${p&&p.cpf?`<div class="linha"><div class="lbl">CPF</div><div class="val">${escapeHtml(p.cpf)}</div></div>`:''}
-  <table class="sessoes"><thead><tr><th>Data</th><th>Tipo de atendimento</th><th class="num">Valor</th></tr></thead>
-  <tbody>${linhasSessoes}</tbody></table>
-  <div class="linha"><div class="lbl">Forma de pagamento</div><div class="val">${escapeHtml(formaTxt)}</div></div>
-  <div class="valor">Total: ${BRL(total)}</div>
+  <p class="declaracao">Declaro que recebi de <strong>${escapeHtml(pacienteNome(c0.pacienteId))}</strong>${cpfTxt} a quantia de <strong>${BRL(total)}</strong> referente a atendimento${plural?'s':''} psicológico${plural?'s':''} realizado${plural?'s':''} na${plural?'s':''} data${plural?'s':''} de <strong>${datasTxt}</strong>.</p>
   <div class="assinatura-wrap">
     <img class="assinatura-img" src="https://carlagabriellethomas.com/assets/assinatura.png" onerror="this.style.display='none'">
-    <div class="assinatura">${escapeHtml(prof)}</div>
+    <div class="assinatura-linha"></div>
+    <div class="assinatura-nome">${escapeHtml(prof)}</div>
+    <div class="assinatura-crp">CRP 07/32377</div>
   </div>
   </div>
   <div class="no-print"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
