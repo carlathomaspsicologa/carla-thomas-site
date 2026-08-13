@@ -1198,8 +1198,8 @@ function gerarRecibo(ids){
     html,body{margin:0;padding:0}
     html{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
     body{font-family:system-ui,sans-serif;color:#12211f;line-height:1.6;width:210mm;min-height:297mm;background:#fff url('https://carlagabriellethomas.com/assets/papel-timbrado.png') top center/210mm 297mm no-repeat;-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
-    .folha{padding:60mm 26mm 0 26mm}
-    h1{font-size:17px;border-bottom:2px solid #2f7d72;padding-bottom:9px;margin:0 0 22px}
+    .folha{padding:72mm 26mm 0 26mm}
+    h1{font-size:17px;text-align:center;border-bottom:2px solid #2f7d72;padding-bottom:9px;margin:0 0 26px}
     .declaracao{font-size:15px;line-height:1.9;text-align:justify;margin:0}
     .declaracao strong{font-weight:700}
     .assinatura-wrap{margin:64px auto 0;width:280px;text-align:center}
@@ -1216,7 +1216,7 @@ function gerarRecibo(ids){
   <div class="assinatura-wrap">
     <img class="assinatura-img" src="https://carlagabriellethomas.com/assets/assinatura.png" onerror="this.style.display='none'">
     <div class="assinatura-linha"></div>
-    <div class="assinatura-nome">${escapeHtml(prof)}</div>
+    <div class="assinatura-nome">Carla Thomas</div>
     <div class="assinatura-crp">CRP 07/32377</div>
   </div>
   </div>
