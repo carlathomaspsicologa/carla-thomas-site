@@ -337,7 +337,7 @@
         </div>
         <div class="field">
           <label>Duração padrão da sessão (min)</label>
-          <input id="cfgDur" type="number" min="5" step="5" placeholder="50" style="max-width:120px">
+          <input id="cfgDur" type="number" min="5" step="5" placeholder="60" style="max-width:120px">
           <span class="hint">Usada no evento do Google Agenda.</span>
         </div>
       </div>
@@ -486,7 +486,7 @@ function load(){
 }
 function normalize(d){
   return {
-    config: Object.assign({ profissional:'', ddi:'55', duracao:50, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'https://carlagabriellethomas.com/assets/kit-cf052734cbc6.pdf', linkFicha:'https://carlagabriellethomas.com/assets/ficha-17c1404b4cf9.pdf', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
+    config: Object.assign({ profissional:'', ddi:'55', duracao:60, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'https://carlagabriellethomas.com/assets/kit-cf052734cbc6.pdf', linkFicha:'https://carlagabriellethomas.com/assets/ficha-17c1404b4cf9.pdf', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
     pacientes: d.pacientes || [],
     consultas: d.consultas || []
   };
@@ -801,7 +801,7 @@ function exportSemanaICS(){
   const fmt=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
   let ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Consultorio//PT-BR\r\nCALSCALE:GREGORIAN\r\n`;
   items.forEach(c=>{
-    const dur=c.duracaoMin||parseInt(state.config.duracao)||50;
+    const dur=c.duracaoMin||parseInt(state.config.duracao)||60;
     const [y,m,d]=c.data.split('-').map(Number);
     const [hh,mm]=(c.hora||'09:00').split(':').map(Number);
     const start=new Date(y,m-1,d,hh,mm);
@@ -899,18 +899,25 @@ function gcalDates(dateStr,horaStr,mins){
   const f=dt=>`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
   return f(start)+'/'+f(end);
 }
+function nomeCurto(nome){
+  const partes=(nome||'').trim().split(/\s+/).filter(Boolean);
+  if(partes.length<=1) return partes[0]||'';
+  return `${partes[0]} ${partes[partes.length-1]}`;
+}
 function addToGoogle(id){
   const c=state.consultas.find(x=>x.id===id); if(!c) return;
-  const dur=c.duracaoMin||parseInt(state.config.duracao)||50;
+  const p=paciente(c.pacienteId);
+  const dur=c.duracaoMin||parseInt(state.config.duracao)||60;
   let tz='UTC'; try{ tz=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'; }catch(e){}
-  const text=`Consulta — ${pacienteNome(c.pacienteId)}`;
+  const text=`Sessão | ${nomeCurto(pacienteNome(c.pacienteId))}`;
   const details=[`Situação: ${STATUS[c.status].label}`,`Tipo: ${tipoLabel(tipoEfetivo(c))}`,`Valor: ${BRL(consultaValor(c))}`, c.modalidade==='online'&&c.linkVideo?`Link: ${c.linkVideo}`:'', c.obs?`Obs: ${c.obs}`:'']
     .filter(Boolean).join('\n');
   const url=`https://calendar.google.com/calendar/render?action=TEMPLATE`+
     `&text=${encodeURIComponent(text)}`+
     `&dates=${gcalDates(c.data,c.hora,dur)}`+
     `&details=${encodeURIComponent(details)}`+
-    `&ctz=${encodeURIComponent(tz)}`;
+    `&ctz=${encodeURIComponent(tz)}`+
+    (p&&p.email?`&add=${encodeURIComponent(p.email)}`:'');
   window.open(url,'_blank');
   toast('Abrindo o Google Agenda com a consulta…');
 }
@@ -1644,7 +1651,7 @@ function openConsulta(id){
         </select></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>Duração desta sessão (min)</label><input id="cDuracao" type="number" min="5" step="5" value="${c.duracaoMin??''}" placeholder="padrão: ${state.config.duracao||50}"></div>
+        <div class="field"><label>Duração desta sessão (min)</label><input id="cDuracao" type="number" min="5" step="5" value="${c.duracaoMin??''}" placeholder="padrão: ${state.config.duracao||60}"></div>
         <div class="field" id="linkVideoWrap" style="display:${c.modalidade==='online'?'flex':'none'};flex-direction:column;gap:5px">
           <label>Link da videochamada</label>
           <input id="cLinkVideo" value="${escapeAttr(c.linkVideo||'')}" placeholder="https://meet.google.com/…">
@@ -1722,7 +1729,7 @@ function delConsulta(id){
 function fillConfig(){
   document.getElementById('cfgProf').value=state.config.profissional||'';
   document.getElementById('cfgDdi').value=state.config.ddi||'55';
-  document.getElementById('cfgDur').value=state.config.duracao||50;
+  document.getElementById('cfgDur').value=state.config.duracao||60;
   document.getElementById('cfgMsg').value=state.config.mensagem||DEFAULT_MSG;
   document.getElementById('cfgMsgLembrete').value=state.config.mensagemLembrete||DEFAULT_MSG_LEMBRETE;
   document.getElementById('cfgMsgPag').value=state.config.mensagemPag||DEFAULT_MSG_PAG;
@@ -1760,7 +1767,7 @@ function updatePreview(){
 function saveConfig(){
   state.config.profissional=document.getElementById('cfgProf').value.trim();
   state.config.ddi=document.getElementById('cfgDdi').value.replace(/\D/g,'')||'55';
-  state.config.duracao=parseInt(document.getElementById('cfgDur').value)||50;
+  state.config.duracao=parseInt(document.getElementById('cfgDur').value)||60;
   state.config.mensagem=document.getElementById('cfgMsg').value.trim()||DEFAULT_MSG;
   state.config.mensagemLembrete=document.getElementById('cfgMsgLembrete').value.trim()||DEFAULT_MSG_LEMBRETE;
   state.config.mensagemPag=document.getElementById('cfgMsgPag').value.trim()||DEFAULT_MSG_PAG;
