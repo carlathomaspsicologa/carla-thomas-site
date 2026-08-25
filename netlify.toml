@@ -3,7 +3,7 @@
   publish = "_site"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_PATHS = "src/assets/kit-cf052734cbc6.pdf"
+  SECRETS_SCAN_OMIT_PATHS = "src/assets/kit-cf052734cbc6.pdf,src/_includes/base.njk,_site/**"
 
 [functions]
   directory = "netlify/functions"
