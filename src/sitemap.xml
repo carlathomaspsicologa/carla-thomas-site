@@ -16,9 +16,19 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://carlagabriellethomas.com/mentoria.html</loc>
+    <loc>https://carlagabriellethomas.com/ansiedade.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/tcc-act.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/mentoria.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://carlagabriellethomas.com/transicoes-de-vida.html</loc>
@@ -62,6 +72,11 @@
   </url>
   <url>
     <loc>https://carlagabriellethomas.com/blog/depressao-quando-a-tristeza-nao-passa/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/blog/burnout-quando-o-cansaco-deixa-de-ser-so-cansaco/</loc>
     <changefreq>yearly</changefreq>
     <priority>0.7</priority>
   </url>
