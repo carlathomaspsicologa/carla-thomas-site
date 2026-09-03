@@ -37,4 +37,6 @@ Se em algum momento os pensamentos envolverem se machucar ou não querer mais vi
 A depressão distorce a forma como você enxerga a si mesma e a sua própria capacidade de melhorar. Isso não significa que a melhora não é possível — significa que, nesse momento, é mais difícil enxergar o caminho até ela. Terapia pode ajudar a encontrar esse caminho, um passo pequeno de cada vez.
 
 Com carinho,
-Carla Thomas
+Carla Gabrielle Thomas
+
+*Carla Gabrielle Thomas é psicóloga (CRP 07/32377), Mestre em Psicologia e Saúde pela Universidade Federal de Ciências da Saúde de Porto Alegre (UFCSPA), com formação em Terapia Cognitivo-Comportamental (TCC) e Terapia de Aceitação e Compromisso (ACT). Atende adultos, 100% online.*
