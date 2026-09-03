@@ -41,4 +41,6 @@ Ignorar os sinais raramente funciona por muito tempo — o corpo e a mente cobra
 Se o seu cansaço já não passa com descanso, e o trabalho que antes fazia sentido agora parece só pesado, isso é um sinal, não uma fraqueza. Terapia pode ajudar a entender o que precisa mudar — no trabalho, nos limites, ou em você.
 
 Com carinho,
-Carla Thomas
+Carla Gabrielle Thomas
+
+*Carla Gabrielle Thomas é psicóloga (CRP 07/32377), Mestre em Psicologia e Saúde pela Universidade Federal de Ciências da Saúde de Porto Alegre (UFCSPA), com formação em Terapia Cognitivo-Comportamental (TCC) e Terapia de Aceitação e Compromisso (ACT). Atende adultos, 100% online.*
