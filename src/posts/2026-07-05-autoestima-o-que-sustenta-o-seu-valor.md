@@ -39,4 +39,6 @@ Autoestima não se constrói da noite para o dia, e não depende de eliminar tod
 Se esse tema te atravessa de um jeito mais profundo, terapia pode ajudar a entender de onde vêm essas crenças sobre o seu valor e como começar a mudá-las.
 
 Com carinho,
-Carla Thomas
+Carla Gabrielle Thomas
+
+*Carla Gabrielle Thomas é psicóloga (CRP 07/32377), Mestre em Psicologia e Saúde pela Universidade Federal de Ciências da Saúde de Porto Alegre (UFCSPA), com formação em Terapia Cognitivo-Comportamental (TCC) e Terapia de Aceitação e Compromisso (ACT). Atende adultos, 100% online.*
