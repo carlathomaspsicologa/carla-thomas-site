@@ -45,4 +45,6 @@ Não. Ela sempre vai aparecer um pouco, isso é humano. **A meta é ouvir o alar
 Se a ansiedade está presente na maioria dos dias, há muitas semanas, e limita a sua vida, procurar um psicólogo é um passo de cuidado, não de fraqueza.
 
 Com carinho,
-Carla Thomas
+Carla Gabrielle Thomas
+
+*Carla Gabrielle Thomas é psicóloga (CRP 07/32377), Mestre em Psicologia e Saúde pela Universidade Federal de Ciências da Saúde de Porto Alegre (UFCSPA), com formação em Terapia Cognitivo-Comportamental (TCC) e Terapia de Aceitação e Compromisso (ACT). Atende adultos, 100% online.*
