@@ -85,4 +85,29 @@
     <changefreq>yearly</changefreq>
     <priority>0.5</priority>
   </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/blog/quando-procurar-um-psicologo-para-ansiedade/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/blog/por-que-nao-consigo-desligar-a-cabeca/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/blog/como-funciona-a-tcc-para-ansiedade/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/blog/terapia-online-funciona/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://carlagabriellethomas.com/blog/como-escolher-um-psicologo-online/</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
