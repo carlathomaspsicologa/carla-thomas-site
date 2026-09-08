@@ -247,16 +247,24 @@
     <p class="kicker">Conteúdos</p>
     <h2>Artigos Recentes</h2>
     <div class="posts-editorial" style="text-align:left">
-      {% for post in collections.post | reverse %}
-      {% if loop.index <= 3 %}
       <article class="post-entry">
-        <p class="post-entry-meta">{{ post.data.categoria }}<span class="dot">·</span>{{ post.data.tempoLeitura }}</p>
-        <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
-        <p>{{ post.data.resumo }}</p>
-        <a class="more" href="{{ post.url }}">Ler artigo →</a>
+        <p class="post-entry-meta">Sobrecarga<span class="dot">·</span>4 min de leitura</p>
+        <h3><a href="blog/sobrecarga-emocional/">Sobrecarga emocional: quando cuidar de tudo custa caro demais</a></h3>
+        <p>Dar conta de tudo — trabalho, casa, relações, mudanças — tem um custo emocional que muitas vezes só aparece quando já está alto demais. Entenda os sinais.</p>
+        <a class="more" href="blog/sobrecarga-emocional/">Ler artigo →</a>
       </article>
-      {% endif %}
-      {% endfor %}
+      <article class="post-entry">
+        <p class="post-entry-meta">Recomeços<span class="dot">·</span>4 min de leitura</p>
+        <h3><a href="blog/quem-sou-eu-depois-que-minha-vida-mudou/">Quem sou eu depois que minha vida mudou?</a></h3>
+        <p>Depois de uma grande mudança, é comum não se reconhecer mais. Entenda por que essa pergunta aparece e como começar a responder a ela sem pressa.</p>
+        <a class="more" href="blog/quem-sou-eu-depois-que-minha-vida-mudou/">Ler artigo →</a>
+      </article>
+      <article class="post-entry">
+        <p class="post-entry-meta">Momentos de mudança<span class="dot">·</span>4 min de leitura</p>
+        <h3><a href="blog/mudanca-de-pais-e-identidade/">Por que uma mudança de país pode mexer com nossa identidade?</a></h3>
+        <p>Mudar de país não é só uma mudança de endereço — é uma mudança de referências. Entenda por que essa transição costuma mexer tão fundo com a identidade.</p>
+        <a class="more" href="blog/mudanca-de-pais-e-identidade/">Ler artigo →</a>
+      </article>
     </div>
     <div class="btn-row" style="justify-content:center">
       <a class="btn btn--ghost" href="blog.html">Ver todos os artigos</a>
