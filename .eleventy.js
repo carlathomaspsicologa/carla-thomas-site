@@ -13,7 +13,8 @@ module.exports = function (eleventyConfig) {
     "index.html", "sobre.html", "psicoterapia.html", "ebook.html",
     "materiais.html", "contato.html", "obrigado.html", "obrigado-ebook.html",
     "agenda-carla.html", "mentoria.html", "duvidas-frequentes.html",
-    "transicoes-de-vida.html", "ansiedade.html", "tcc-act.html"
+    "transicoes-de-vida.html", "ansiedade.html", "tcc-act.html",
+    "momentos-de-mudanca.html", "transicao-de-carreira.html", "decisoes.html", "recomecos.html"
   ];
   paginas.forEach(function (p) {
     eleventyConfig.addPassthroughCopy({ ["src/" + p]: p });
