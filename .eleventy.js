@@ -7,6 +7,7 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ "src/admin": "admin" });
   eleventyConfig.addPassthroughCopy({ "src/robots.txt": "robots.txt" });
   eleventyConfig.addPassthroughCopy({ "src/sitemap.xml": "sitemap.xml" });
+  eleventyConfig.addPassthroughCopy({ "src/7d85ef8267f71931d7f0d210222a4188.txt": "7d85ef8267f71931d7f0d210222a4188.txt" });
 
   // Páginas estáticas (mantidas exatamente como estão)
   const paginas = [
