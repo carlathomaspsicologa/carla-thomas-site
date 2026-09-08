@@ -17,3 +17,15 @@
   for = "/"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+[[redirects]]
+  from = "/transicoes-de-vida.html"
+  to = "/momentos-de-mudanca.html"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/transicoes-de-vida"
+  to = "/momentos-de-mudanca.html"
+  status = 301
+  force = true
