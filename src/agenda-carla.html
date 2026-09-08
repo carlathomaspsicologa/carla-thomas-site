@@ -95,6 +95,11 @@
   .badge.realizada{background:#e8eef7;color:#245d9e}
   .badge.cancelada{background:#eef0ef;color:var(--muted)}
   .badge.faltou{background:var(--danger-soft);color:var(--danger)}
+  .badge.novo{background:var(--brand-soft);color:var(--brand-dark)}
+  .badge.contatado{background:var(--warn-soft);color:var(--warn)}
+  .badge.agendado{background:var(--good-soft);color:#0a7d0a}
+  .badge.convertido{background:#e8eef7;color:#245d9e}
+  .badge.perdido{background:#eef0ef;color:var(--muted)}
   .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
   .pay{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600}
   .pay.pago{color:var(--good)}
@@ -242,6 +247,7 @@
   <nav class="tabs" id="tabs">
     <button data-tab="agenda" class="active">Agenda</button>
     <button data-tab="pacientes">Pacientes</button>
+    <button data-tab="leads">Leads</button>
     <button data-tab="financeiro">Financeiro</button>
     <button data-tab="ajustes">Ajustes</button>
   </nav>
@@ -282,6 +288,20 @@
       </div>
     </div>
     <div class="card" id="pacientesCard"></div>
+  </section>
+    <!-- ========== LEADS ========== -->
+  <section class="view" id="view-leads">
+    <div class="view-head">
+      <div>
+        <h2>Leads</h2>
+        <p id="leadsSub"></p>
+      </div>
+      <div class="row">
+        <input id="leadsBusca" type="text" placeholder="Buscar por nome…" oninput="renderLeads()" style="border:1px solid var(--line-strong);border-radius:9px;padding:8px 12px;min-width:200px;background:var(--surface)">
+        <button class="btn primary" onclick="openLead()">+ Novo lead</button>
+      </div>
+    </div>
+    <div class="card" id="leadsCard"></div>
   </section>
   <!-- ========== FINANCEIRO ========== -->
   <section class="view" id="view-financeiro">
@@ -488,7 +508,8 @@ function normalize(d){
   return {
     config: Object.assign({ profissional:'', ddi:'55', duracao:60, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'https://carlagabriellethomas.com/assets/kit-cf052734cbc6.pdf', linkFicha:'https://carlagabriellethomas.com/assets/ficha-17c1404b4cf9.pdf', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
     pacientes: d.pacientes || [],
-    consultas: d.consultas || []
+    consultas: d.consultas || [],
+    leads: d.leads || []
   };
 }
 function save(){
@@ -1602,6 +1623,96 @@ function delPaciente(id){
   state.pacientes=state.pacientes.filter(p=>p.id!==id);
   save(); closeModal(); render(); toast('Paciente excluído');
 }
+function lead(id){ return state.leads.find(l=>l.id===id); }
+function renderLeads(){
+  const card=document.getElementById('leadsCard');
+  if(!card) return;
+  document.getElementById('leadsSub').textContent=`${state.leads.length} lead(s) cadastrado(s)`;
+  const busca=(document.getElementById('leadsBusca')?.value||'').toLowerCase().trim();
+  const lista=busca? state.leads.filter(l=>(l.nome||'').toLowerCase().includes(busca)) : state.leads;
+  if(!lista.length){
+    card.innerHTML=`<div class="empty"><div class="big3">📋</div><p>${busca?'Nenhum lead encontrado.':'Nenhum lead cadastrado ainda.'}</p>${!busca?'<button class="btn primary" onclick="openLead()">+ Novo lead</button>':''}</div>`;
+    return;
+  }
+  const STATUS_LABEL={novo:'Novo',contatado:'Contatado',agendado:'Agendado',convertido:'Convertido',perdido:'Perdido'};
+  card.innerHTML=`<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="text-align:left;border-bottom:1px solid var(--line)">
+      <th style="padding:10px 8px">Nome</th><th style="padding:10px 8px">Telefone</th><th style="padding:10px 8px">Origem</th><th style="padding:10px 8px">Status</th><th style="padding:10px 8px">Data</th><th style="padding:10px 8px"></th>
+    </tr></thead>
+    <tbody>
+    ${lista.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(l=>`
+      <tr style="border-bottom:1px solid var(--line)">
+        <td style="padding:10px 8px">${escapeHtml(l.nome||'')}</td>
+        <td style="padding:10px 8px">${escapeHtml(l.telefone||'')}</td>
+        <td style="padding:10px 8px">${escapeHtml(l.origem||'')}</td>
+        <td style="padding:10px 8px"><span class="badge ${l.status||'novo'}">${STATUS_LABEL[l.status]||'Novo'}</span></td>
+        <td style="padding:10px 8px">${l.data?l.data.split('-').reverse().join('/'):''}</td>
+        <td style="padding:10px 8px" class="acts">
+          ${l.telefone?`<button class="btn wa sm" onclick="whatsLead('${l.id}')">WhatsApp</button>`:''}
+          <button class="btn sm" onclick="openLead('${l.id}')">Editar</button>
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+function openLead(id){
+  const l = id ? lead(id) : {nome:'',telefone:'',origem:'',status:'novo',data:new Date().toISOString().slice(0,10),obs:''};
+  if(id && !l){ toast('Lead não encontrado.'); return; }
+  modal.innerHTML=`
+    <div class="modal-head"><h3>${id?'Editar lead':'Novo lead'}</h3>
+      <button class="close-x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Nome *</label><input id="lNome" value="${escapeHtml(l.nome)}"></div>
+      <div class="field"><label>Telefone</label><input id="lTelefone" value="${escapeHtml(l.telefone||'')}"></div>
+      <div class="field"><label>Origem</label><input id="lOrigem" value="${escapeHtml(l.origem||'')}" placeholder="Instagram, indicação, site…"></div>
+      <div class="grid2">
+        <div class="field"><label>Status</label>
+          <select id="lStatus">
+            <option value="novo" ${l.status==='novo'?'selected':''}>Novo</option>
+            <option value="contatado" ${l.status==='contatado'?'selected':''}>Contatado</option>
+            <option value="agendado" ${l.status==='agendado'?'selected':''}>Agendado</option>
+            <option value="convertido" ${l.status==='convertido'?'selected':''}>Convertido</option>
+            <option value="perdido" ${l.status==='perdido'?'selected':''}>Perdido</option>
+          </select>
+        </div>
+        <div class="field"><label>Data</label><input id="lData" type="date" value="${l.data||''}"></div>
+      </div>
+      <div class="field"><label>Observações</label><textarea id="lObs" rows="3">${escapeHtml(l.obs||'')}</textarea></div>
+    </div>
+    <div class="modal-foot">
+      ${id?`<button class="btn danger" onclick="delLead('${id}')" style="margin-right:auto">Excluir</button>`:''}
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="saveLead('${id||''}')">Salvar</button>
+    </div>`;
+  overlay.classList.add('open');
+  setTimeout(()=>document.getElementById('lNome').focus(),50);
+}
+function saveLead(id){
+  const nome=document.getElementById('lNome').value.trim();
+  if(!nome){ toast('Informe o nome do lead.'); return; }
+  const data={ nome,
+    telefone:document.getElementById('lTelefone').value.trim(),
+    origem:document.getElementById('lOrigem').value.trim(),
+    status:document.getElementById('lStatus').value,
+    data:document.getElementById('lData').value,
+    obs:document.getElementById('lObs').value.trim()
+  };
+  if(id){ Object.assign(lead(id), data); }
+  else{ state.leads.push(Object.assign({id:uid()}, data)); }
+  save(); closeModal(); render(); toast('Lead salvo ✓');
+}
+function delLead(id){
+  if(!confirm('Excluir este lead?')) return;
+  state.leads=state.leads.filter(l=>l.id!==id);
+  save(); closeModal(); render(); toast('Lead excluído');
+}
+function whatsLead(id){
+  const l=lead(id);
+  if(!l || !l.telefone){ toast('Este lead não tem telefone cadastrado.'); return; }
+  const phone=normalizePhone(l.telefone);
+  const url=`https://wa.me/${phone}`;
+  window.open(url,'_blank');
+}
 /* --- Consulta --- */
 function openConsulta(id){
   const c = id? state.consultas.find(x=>x.id===id) : {pacienteId:'',data:todayStr(),hora:'09:00',status:'agendada',pago:false,notaEmitida:false,valor:null,forma:'',obs:'',lembreteEnviado:false,tipo:'',modalidade:'presencial',linkVideo:'',duracaoMin:null};
@@ -1850,6 +1961,7 @@ function render(){
   renderBackupBanner();
   renderAgenda();
   renderPacientes();
+  renderLeads();
   renderFinanceiro();
 }
 fillConfig();
