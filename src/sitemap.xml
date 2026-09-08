@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://carlagabriellethomas.com/</loc><priority>1.0</priority></url>
+  <url><loc>https://carlagabriellethomas.com/momentos-de-mudanca.html</loc><priority>0.9</priority></url>
   <url><loc>https://carlagabriellethomas.com/psicoterapia.html</loc><priority>0.9</priority></url>
-  <url><loc>https://carlagabriellethomas.com/ansiedade.html</loc><priority>0.9</priority></url>
-  <url><loc>https://carlagabriellethomas.com/tcc-act.html</loc><priority>0.8</priority></url>
-  <url><loc>https://carlagabriellethomas.com/transicoes-de-vida.html</loc><priority>0.8</priority></url>
+  <url><loc>https://carlagabriellethomas.com/transicao-de-carreira.html</loc><priority>0.8</priority></url>
+  <url><loc>https://carlagabriellethomas.com/decisoes.html</loc><priority>0.8</priority></url>
+  <url><loc>https://carlagabriellethomas.com/recomecos.html</loc><priority>0.8</priority></url>
+  <url><loc>https://carlagabriellethomas.com/ansiedade.html</loc><priority>0.8</priority></url>
+  <url><loc>https://carlagabriellethomas.com/tcc-act.html</loc><priority>0.7</priority></url>
   <url><loc>https://carlagabriellethomas.com/sobre.html</loc><priority>0.8</priority></url>
   <url><loc>https://carlagabriellethomas.com/contato.html</loc><priority>0.8</priority></url>
   <url><loc>https://carlagabriellethomas.com/ebook.html</loc><priority>0.7</priority></url>
