@@ -247,24 +247,16 @@
     <p class="kicker">Conteúdos</p>
     <h2>Artigos Recentes</h2>
     <div class="posts-editorial" style="text-align:left">
+      {% for post in collections.post | reverse %}
+      {% if loop.index <= 3 %}
       <article class="post-entry">
-        <p class="post-entry-meta">Depressão<span class="dot">·</span>3 min de leitura</p>
-        <h3><a href="blog/depressao-quando-a-tristeza-nao-passa/">Depressão: quando a tristeza não passa</a></h3>
-        <p>Entenda a diferença entre tristeza e depressão, como o ciclo da depressão se mantém, e por que pequenos passos são o caminho para sair dele.</p>
-        <a class="more" href="blog/depressao-quando-a-tristeza-nao-passa/">Ler artigo →</a>
+        <p class="post-entry-meta">{{ post.data.categoria }}<span class="dot">·</span>{{ post.data.tempoLeitura }}</p>
+        <h3><a href="{{ post.url }}">{{ post.data.title }}</a></h3>
+        <p>{{ post.data.resumo }}</p>
+        <a class="more" href="{{ post.url }}">Ler artigo →</a>
       </article>
-      <article class="post-entry">
-        <p class="post-entry-meta">Ansiedade<span class="dot">·</span>3 min de leitura</p>
-        <h3><a href="blog/ansiedade-isto-tambem-e-cuidado/">Ansiedade: isto também é cuidado</a></h3>
-        <p>Entenda por que a ansiedade existe, como ela aparece no corpo e na mente, e o que realmente ajuda a lidar com ela no dia a dia.</p>
-        <a class="more" href="blog/ansiedade-isto-tambem-e-cuidado/">Ler artigo →</a>
-      </article>
-      <article class="post-entry">
-        <p class="post-entry-meta">Autoestima<span class="dot">·</span>3 min de leitura</p>
-        <h3><a href="blog/autoestima-o-que-sustenta-o-seu-valor/">Autoestima: o que sustenta o seu valor</a></h3>
-        <p>Autoestima não é vaidade nem excesso de confiança. Entenda o que realmente a sustenta e como começar a fortalecê-la.</p>
-        <a class="more" href="blog/autoestima-o-que-sustenta-o-seu-valor/">Ler artigo →</a>
-      </article>
+      {% endif %}
+      {% endfor %}
     </div>
     <div class="btn-row" style="justify-content:center">
       <a class="btn btn--ghost" href="blog.html">Ver todos os artigos</a>
