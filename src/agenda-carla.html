@@ -1951,6 +1951,7 @@ function openConsulta(id){
         <div class="field"><label>Repetir</label><select id="cRepetir">
           <option value="">Não repetir</option>
           <option value="semanal">Toda semana</option>
+          <option value="3xmes">3x ao mês (a cada 10 dias)</option>
           <option value="quinzenal">A cada 15 dias</option>
           <option value="mensal">Todo mês</option>
         </select></div>
@@ -1968,6 +1969,7 @@ function addDaysStr(dateStr,n){ const d=parseDate(dateStr); d.setDate(d.getDate(
 function addMonthsStr(dateStr,n){ const d=parseDate(dateStr); d.setMonth(d.getMonth()+n); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function proximaDataRecorrencia(dateStr, tipo){
   if(tipo==='semanal') return addDaysStr(dateStr,7);
+  if(tipo==='3xmes') return addDaysStr(dateStr,10);
   if(tipo==='quinzenal') return addDaysStr(dateStr,14);
   if(tipo==='mensal') return addMonthsStr(dateStr,1);
   return dateStr;
