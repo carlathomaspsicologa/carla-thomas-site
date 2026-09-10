@@ -311,6 +311,11 @@
         <p>Controle de recebimentos por sessão.</p>
       </div>
     </div>
+    <div class="row" style="gap:8px;margin-bottom:16px">
+      <button class="btn primary sm" id="finTabRelatorioBtn" onclick="finTab('relatorio')">Relatório</button>
+      <button class="btn sm" id="finTabGastosBtn" onclick="finTab('gastos')">Gastos</button>
+    </div>
+    <div id="finPanelRelatorio">
     <div class="stat-grid" id="finStats"></div>
     <div class="card pad" style="margin-bottom:20px">
       <div class="row between" style="margin-bottom:6px">
@@ -334,6 +339,25 @@
       <button class="btn sm" onclick="exportFinanceiroCSV()">⬇ Exportar relatório (CSV)</button>
     </div>
     <div class="card" id="finTable"></div>
+    </div>
+    <div id="finPanelGastos" style="display:none">
+      <div class="row" style="margin-bottom:16px;align-items:center;gap:10px">
+        <label style="font-size:13px;color:var(--muted)">Mês:</label>
+        <input type="month" id="gastosMes" onchange="renderGastos()" style="border:1px solid var(--line-strong);border-radius:9px;padding:8px 12px;background:var(--surface)">
+      </div>
+      <div class="stat-grid" id="gastosStats"></div>
+      <div class="row between" style="margin:20px 0 10px">
+        <h3 style="font-size:15px">Gastos do mês</h3>
+        <button class="btn primary sm" onclick="openGasto()">+ Novo gasto</button>
+      </div>
+      <div class="card" id="gastosTable"></div>
+      <div class="row between" style="margin:24px 0 10px">
+        <h3 style="font-size:15px">Receitas extras do mês</h3>
+        <button class="btn primary sm" onclick="openReceitaExtra()">+ Nova receita extra</button>
+      </div>
+      <div class="card" id="receitasExtraTable"></div>
+    </div>
+  
   </section>
   <!-- ========== AJUSTES ========== -->
   <section class="view" id="view-ajustes">
@@ -509,7 +533,9 @@ function normalize(d){
     config: Object.assign({ profissional:'', ddi:'55', duracao:60, mensagem: DEFAULT_MSG, mensagemPag: DEFAULT_MSG_PAG, mensagemLembrete: DEFAULT_MSG_LEMBRETE, mensagemFicha: DEFAULT_MSG_FICHA, mensagemKit: DEFAULT_MSG_KIT, linkKit:'https://carlagabriellethomas.com/assets/kit-cf052734cbc6.pdf', linkFicha:'https://carlagabriellethomas.com/assets/ficha-17c1404b4cf9.pdf', chavePix:'', ultimoBackupEm:null, valoresPorTipo:{avaliacao:0,supervisao:0,mentoria:0}, tema:'claro', bloqueioMin:0 }, d.config||{}),
     pacientes: d.pacientes || [],
     consultas: d.consultas || [],
-    leads: d.leads || []
+    leads: d.leads || [],
+    gastos: d.gastos || [],
+    receitasExtra: d.receitasExtra || []
   };
 }
 function save(){
@@ -1713,6 +1739,158 @@ function whatsLead(id){
   const url=`https://wa.me/${phone}`;
   window.open(url,'_blank');
 }
+function finTab(tab){
+  document.getElementById('finPanelRelatorio').style.display = tab==='relatorio' ? '' : 'none';
+  document.getElementById('finPanelGastos').style.display = tab==='gastos' ? '' : 'none';
+  document.getElementById('finTabRelatorioBtn').className = 'btn sm' + (tab==='relatorio' ? ' primary' : '');
+  document.getElementById('finTabGastosBtn').className = 'btn sm' + (tab==='gastos' ? ' primary' : '');
+  if(tab==='gastos') renderGastos();
+}
+function gasto(id){ return state.gastos.find(g=>g.id===id); }
+function receitaExtra(id){ return state.receitasExtra.find(r=>r.id===id); }
+function mesAtualStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function renderGastos(){
+  const input=document.getElementById('gastosMes');
+  if(!input) return;
+  if(!input.value) input.value=mesAtualStr();
+  const mes=input.value;
+  const gastosDoMes=state.gastos.filter(g=>(g.data||'').slice(0,7)===mes);
+  const receitasDoMes=state.receitasExtra.filter(r=>(r.data||'').slice(0,7)===mes);
+  const consultasDoMes=state.consultas.filter(c=>(c.data||'').slice(0,7)===mes);
+  const projecao=consultasDoMes.filter(c=>c.status!=='cancelada' && c.status!=='faltou').reduce((s,c)=>s+(Number(c.valor)||0),0);
+  const faturadoConsultas=consultasDoMes.filter(c=>c.pago).reduce((s,c)=>s+(Number(c.valor)||0),0);
+  const faturadoExtra=receitasDoMes.reduce((s,r)=>s+(Number(r.valor)||0),0);
+  const faturado=faturadoConsultas+faturadoExtra;
+  const totalGastos=gastosDoMes.reduce((s,g)=>s+(Number(g.valor)||0),0);
+  const resultado=faturado-totalGastos;
+  document.getElementById('gastosStats').innerHTML=`
+    <div class="stat"><div class="num">${BRL(projecao)}</div><div class="lbl">Projeção do mês</div></div>
+    <div class="stat"><div class="num">${BRL(faturado)}</div><div class="lbl">Receita faturada</div></div>
+    <div class="stat"><div class="num">${BRL(totalGastos)}</div><div class="lbl">Gastos do mês</div></div>
+    <div class="stat"><div class="num" style="color:${resultado>=0?'var(--good)':'var(--danger)'}">${BRL(resultado)}</div><div class="lbl">Resultado</div></div>
+  `;
+  const gTable=document.getElementById('gastosTable');
+  if(!gastosDoMes.length){
+    gTable.innerHTML=`<div class="empty"><p>Nenhum gasto lançado neste mês.</p></div>`;
+  } else {
+    gTable.innerHTML=`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--line)">
+        <th style="padding:10px 8px">Descrição</th><th style="padding:10px 8px">Categoria</th><th style="padding:10px 8px">Data</th><th style="padding:10px 8px">Valor</th><th style="padding:10px 8px"></th>
+      </tr></thead>
+      <tbody>
+      ${gastosDoMes.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(g=>`
+        <tr style="border-bottom:1px solid var(--line)">
+          <td style="padding:10px 8px">${escapeHtml(g.descricao||'')}</td>
+          <td style="padding:10px 8px">${escapeHtml(g.categoria||'')}</td>
+          <td style="padding:10px 8px">${g.data?g.data.split('-').reverse().join('/'):''}</td>
+          <td style="padding:10px 8px">${BRL(g.valor)}</td>
+          <td style="padding:10px 8px" class="acts"><button class="btn sm" onclick="openGasto('${g.id}')">Editar</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+  const rTable=document.getElementById('receitasExtraTable');
+  if(!receitasDoMes.length){
+    rTable.innerHTML=`<div class="empty"><p>Nenhuma receita extra lançada neste mês.</p></div>`;
+  } else {
+    rTable.innerHTML=`<table style="width:100%;border-collapse:collapse">
+      <thead><tr style="text-align:left;border-bottom:1px solid var(--line)">
+        <th style="padding:10px 8px">Descrição</th><th style="padding:10px 8px">Data</th><th style="padding:10px 8px">Valor</th><th style="padding:10px 8px"></th>
+      </tr></thead>
+      <tbody>
+      ${receitasDoMes.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(r=>`
+        <tr style="border-bottom:1px solid var(--line)">
+          <td style="padding:10px 8px">${escapeHtml(r.descricao||'')}</td>
+          <td style="padding:10px 8px">${r.data?r.data.split('-').reverse().join('/'):''}</td>
+          <td style="padding:10px 8px">${BRL(r.valor)}</td>
+          <td style="padding:10px 8px" class="acts"><button class="btn sm" onclick="openReceitaExtra('${r.id}')">Editar</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+  }
+}
+function openGasto(id){
+  const g = id ? gasto(id) : {descricao:'',categoria:'Outros',valor:'',data:new Date().toISOString().slice(0,10)};
+  if(id && !g){ toast('Gasto não encontrado.'); return; }
+  modal.innerHTML=`
+    <div class="modal-head"><h3>${id?'Editar gasto':'Novo gasto'}</h3>
+      <button class="close-x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Descrição *</label><input id="gDescricao" value="${escapeHtml(g.descricao)}"></div>
+      <div class="grid2">
+        <div class="field"><label>Categoria</label>
+          <select id="gCategoria">
+            <option value="Aluguel/plataforma" ${g.categoria==='Aluguel/plataforma'?'selected':''}>Aluguel/plataforma</option>
+            <option value="Marketing" ${g.categoria==='Marketing'?'selected':''}>Marketing</option>
+            <option value="Impostos" ${g.categoria==='Impostos'?'selected':''}>Impostos</option>
+            <option value="Materiais" ${g.categoria==='Materiais'?'selected':''}>Materiais</option>
+            <option value="Supervisão/formação" ${g.categoria==='Supervisão/formação'?'selected':''}>Supervisão/formação</option>
+            <option value="Outros" ${g.categoria==='Outros'?'selected':''}>Outros</option>
+          </select>
+        </div>
+        <div class="field"><label>Data</label><input id="gData" type="date" value="${g.data||''}"></div>
+      </div>
+      <div class="field"><label>Valor (R$) *</label><input id="gValor" type="number" step="0.01" min="0" value="${g.valor||''}"></div>
+    </div>
+    <div class="modal-foot">
+      ${id?`<button class="btn danger" onclick="delGasto('${id}')" style="margin-right:auto">Excluir</button>`:''}
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="saveGasto('${id||''}')">Salvar</button>
+    </div>`;
+  overlay.classList.add('open');
+  setTimeout(()=>document.getElementById('gDescricao').focus(),50);
+}
+function saveGasto(id){
+  const descricao=document.getElementById('gDescricao').value.trim();
+  const valor=parseFloat(document.getElementById('gValor').value)||0;
+  if(!descricao){ toast('Informe a descrição do gasto.'); return; }
+  if(!valor){ toast('Informe o valor do gasto.'); return; }
+  const data={ descricao, categoria:document.getElementById('gCategoria').value, valor, data:document.getElementById('gData').value };
+  if(id){ Object.assign(gasto(id), data); }
+  else{ state.gastos.push(Object.assign({id:uid()}, data)); }
+  save(); closeModal(); render(); toast('Gasto salvo ✓');
+}
+function delGasto(id){
+  if(!confirm('Excluir este gasto?')) return;
+  state.gastos=state.gastos.filter(g=>g.id!==id);
+  save(); closeModal(); render(); toast('Gasto excluído');
+}
+function openReceitaExtra(id){
+  const r = id ? receitaExtra(id) : {descricao:'',valor:'',data:new Date().toISOString().slice(0,10)};
+  if(id && !r){ toast('Receita não encontrada.'); return; }
+  modal.innerHTML=`
+    <div class="modal-head"><h3>${id?'Editar receita extra':'Nova receita extra'}</h3>
+      <button class="close-x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Descrição *</label><input id="rDescricao" value="${escapeHtml(r.descricao)}" placeholder="Mentoria, palestra, etc."></div>
+      <div class="grid2">
+        <div class="field"><label>Valor (R$) *</label><input id="rValor" type="number" step="0.01" min="0" value="${r.valor||''}"></div>
+        <div class="field"><label>Data</label><input id="rData" type="date" value="${r.data||''}"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      ${id?`<button class="btn danger" onclick="delReceitaExtra('${id}')" style="margin-right:auto">Excluir</button>`:''}
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="saveReceitaExtra('${id||''}')">Salvar</button>
+    </div>`;
+  overlay.classList.add('open');
+  setTimeout(()=>document.getElementById('rDescricao').focus(),50);
+}
+function saveReceitaExtra(id){
+  const descricao=document.getElementById('rDescricao').value.trim();
+  const valor=parseFloat(document.getElementById('rValor').value)||0;
+  if(!descricao){ toast('Informe a descrição da receita.'); return; }
+  if(!valor){ toast('Informe o valor da receita.'); return; }
+  const data={ descricao, valor, data:document.getElementById('rData').value };
+  if(id){ Object.assign(receitaExtra(id), data); }
+  else{ state.receitasExtra.push(Object.assign({id:uid()}, data)); }
+  save(); closeModal(); render(); toast('Receita salva ✓');
+}
+function delReceitaExtra(id){
+  if(!confirm('Excluir esta receita?')) return;
+  state.receitasExtra=state.receitasExtra.filter(r=>r.id!==id);
+  save(); closeModal(); render(); toast('Receita excluída');
+}
 /* --- Consulta --- */
 function openConsulta(id){
   const c = id? state.consultas.find(x=>x.id===id) : {pacienteId:'',data:todayStr(),hora:'09:00',status:'agendada',pago:false,notaEmitida:false,valor:null,forma:'',obs:'',lembreteEnviado:false,tipo:'',modalidade:'presencial',linkVideo:'',duracaoMin:null};
@@ -1962,6 +2140,7 @@ function render(){
   renderAgenda();
   renderPacientes();
   renderLeads();
+  renderGastos();
   renderFinanceiro();
 }
 fillConfig();
