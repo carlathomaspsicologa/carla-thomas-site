@@ -1757,8 +1757,8 @@ function renderGastos(){
   const gastosDoMes=state.gastos.filter(g=>(g.data||'').slice(0,7)===mes);
   const receitasDoMes=state.receitasExtra.filter(r=>(r.data||'').slice(0,7)===mes);
   const consultasDoMes=state.consultas.filter(c=>(c.data||'').slice(0,7)===mes);
-  const projecao=consultasDoMes.filter(c=>c.status!=='cancelada' && c.status!=='faltou').reduce((s,c)=>s+(Number(c.valor)||0),0);
-  const faturadoConsultas=consultasDoMes.filter(c=>c.pago).reduce((s,c)=>s+(Number(c.valor)||0),0);
+  const projecao=consultasDoMes.filter(c=>c.status!=='cancelada' && c.status!=='faltou').reduce((s,c)=>s+consultaValor(c),0);
+  const faturadoConsultas=consultasDoMes.filter(c=>c.pago).reduce((s,c)=>s+consultaValor(c),0);
   const faturadoExtra=receitasDoMes.reduce((s,r)=>s+(Number(r.valor)||0),0);
   const faturado=faturadoConsultas+faturadoExtra;
   const totalGastos=gastosDoMes.reduce((s,g)=>s+(Number(g.valor)||0),0);
