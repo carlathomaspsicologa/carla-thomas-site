@@ -314,6 +314,7 @@
     <div class="row" style="gap:8px;margin-bottom:16px">
       <button class="btn primary sm" id="finTabRelatorioBtn" onclick="finTab('relatorio')">Relatório</button>
       <button class="btn sm" id="finTabGastosBtn" onclick="finTab('gastos')">Gastos</button>
+      <button class="btn sm" id="finTabAnualBtn" onclick="finTab('anual')">Projeção anual</button>
     </div>
     <div id="finPanelRelatorio">
     <div class="stat-grid" id="finStats"></div>
@@ -356,6 +357,14 @@
         <button class="btn primary sm" onclick="openReceitaExtra()">+ Nova receita extra</button>
       </div>
       <div class="card" id="receitasExtraTable"></div>
+    </div>
+    <div id="finPanelAnual" style="display:none">
+      <div class="row" style="margin-bottom:16px;align-items:center;gap:10px">
+        <label style="font-size:13px;color:var(--muted)">Ano:</label>
+        <select id="anualAno" onchange="renderProjecaoAnual()" style="border:1px solid var(--line);border-radius:8px;padding:6px 10px"></select>
+      </div>
+      <div class="card pad" id="anualTable"></div>
+    </div>
     </div>
   
   </section>
@@ -1742,9 +1751,12 @@ function whatsLead(id){
 function finTab(tab){
   document.getElementById('finPanelRelatorio').style.display = tab==='relatorio' ? '' : 'none';
   document.getElementById('finPanelGastos').style.display = tab==='gastos' ? '' : 'none';
+  document.getElementById('finPanelAnual').style.display = tab==='anual' ? '' : 'none';
   document.getElementById('finTabRelatorioBtn').className = 'btn sm' + (tab==='relatorio' ? ' primary' : '');
   document.getElementById('finTabGastosBtn').className = 'btn sm' + (tab==='gastos' ? ' primary' : '');
+  document.getElementById('finTabAnualBtn').className = 'btn sm' + (tab==='anual' ? ' primary' : '');
   if(tab==='gastos') renderGastos();
+  if(tab==='anual') renderProjecaoAnual();
 }
 function gasto(id){ return state.gastos.find(g=>g.id===id); }
 function receitaExtra(id){ return state.receitasExtra.find(r=>r.id===id); }
@@ -1762,12 +1774,18 @@ function renderGastos(){
   const faturadoExtra=receitasDoMes.reduce((s,r)=>s+(Number(r.valor)||0),0);
   const faturado=faturadoConsultas+faturadoExtra;
   const totalGastos=gastosDoMes.reduce((s,g)=>s+(Number(g.valor)||0),0);
+  const totalGastosFixos=gastosDoMes.filter(g=>g.tipo==='fixa').reduce((s,g)=>s+(Number(g.valor)||0),0);
+  const totalGastosVariaveis=totalGastos-totalGastosFixos;
   const resultado=faturado-totalGastos;
+  const projResultado=projecao-totalGastos;
   document.getElementById('gastosStats').innerHTML=`
     <div class="stat"><div class="num">${BRL(projecao)}</div><div class="lbl">Projeção do mês</div></div>
     <div class="stat"><div class="num">${BRL(faturado)}</div><div class="lbl">Receita faturada</div></div>
     <div class="stat"><div class="num">${BRL(totalGastos)}</div><div class="lbl">Gastos do mês</div></div>
     <div class="stat"><div class="num" style="color:${resultado>=0?'var(--good)':'var(--danger)'}">${BRL(resultado)}</div><div class="lbl">Resultado</div></div>
+    <div class="stat"><div class="num" style="color:${projResultado>=0?'var(--good)':'var(--danger)'}">${BRL(projResultado)}</div><div class="lbl">Projeção de resultado</div></div>
+    <div class="stat"><div class="num">${BRL(totalGastosFixos)}</div><div class="lbl">Gastos fixos</div></div>
+    <div class="stat"><div class="num">${BRL(totalGastosVariaveis)}</div><div class="lbl">Gastos variáveis</div></div>
   `;
   const gTable=document.getElementById('gastosTable');
   if(!gastosDoMes.length){
@@ -1775,13 +1793,13 @@ function renderGastos(){
   } else {
     gTable.innerHTML=`<table style="width:100%;border-collapse:collapse">
       <thead><tr style="text-align:left;border-bottom:1px solid var(--line)">
-        <th style="padding:10px 8px">Descrição</th><th style="padding:10px 8px">Categoria</th><th style="padding:10px 8px">Data</th><th style="padding:10px 8px">Valor</th><th style="padding:10px 8px"></th>
+        <th style="padding:10px 8px">Descrição</th><th style="padding:10px 8px">Categoria</th><th style="padding:10px 8px">Tipo</th><th style="padding:10px 8px">Data</th><th style="padding:10px 8px">Valor</th><th style="padding:10px 8px"></th>
       </tr></thead>
       <tbody>
       ${gastosDoMes.slice().sort((a,b)=>(b.data||'').localeCompare(a.data||'')).map(g=>`
         <tr style="border-bottom:1px solid var(--line)">
           <td style="padding:10px 8px">${escapeHtml(g.descricao||'')}</td>
-          <td style="padding:10px 8px">${escapeHtml(g.categoria||'')}</td>
+          <td style="padding:10px 8px">${escapeHtml(g.categoria||'')}</td><td style="padding:10px 8px"><span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${g.tipo==='fixa'?'rgba(99,102,241,.15)':'rgba(156,163,175,.15)'};color:${g.tipo==='fixa'?'#6366f1':'#9ca3af'}">${g.tipo==='fixa'?'Fixa':'Variável'}</span></td>
           <td style="padding:10px 8px">${g.data?g.data.split('-').reverse().join('/'):''}</td>
           <td style="padding:10px 8px">${BRL(g.valor)}</td>
           <td style="padding:10px 8px" class="acts"><button class="btn sm" onclick="openGasto('${g.id}')">Editar</button></td>
@@ -1809,6 +1827,65 @@ function renderGastos(){
     </table>`;
   }
 }
+function toggleGastoRepetir(sel){
+  const w=document.getElementById('gRepetirWrap');
+  if(w) w.style.display = sel.value==='fixa' ? '' : 'none';
+}
+function renderProjecaoAnual(){
+  const sel=document.getElementById('anualAno');
+  if(!sel) return;
+  if(!sel.options.length){
+    const anos=new Set(state.consultas.map(c=>(c.data||'').slice(0,4)).filter(Boolean));
+    anos.add(String(new Date().getFullYear()));
+    const sorted=[...anos].sort();
+    sel.innerHTML=sorted.map(a=>`<option value="${a}" ${a===String(new Date().getFullYear())?'selected':''}>${a}</option>`).join('');
+  }
+  const ano=sel.value || String(new Date().getFullYear());
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let linhas='';
+  let totProj=0,totFat=0,totFixo=0,totVar=0,totResProj=0,totResReal=0;
+  for(let m=0;m<12;m++){
+    const mesStr=ano+'-'+String(m+1).padStart(2,'0');
+    const consultasDoMes=state.consultas.filter(c=>(c.data||'').slice(0,7)===mesStr);
+    const receitasDoMes=state.receitasExtra.filter(r=>(r.data||'').slice(0,7)===mesStr);
+    const gastosDoMes=state.gastos.filter(g=>(g.data||'').slice(0,7)===mesStr);
+    const projecao=consultasDoMes.filter(c=>c.status!=='cancelada' && c.status!=='faltou').reduce((s,c)=>s+consultaValor(c),0);
+    const faturadoConsultas=consultasDoMes.filter(c=>c.pago).reduce((s,c)=>s+consultaValor(c),0);
+    const faturadoExtra=receitasDoMes.reduce((s,r)=>s+(Number(r.valor)||0),0);
+    const faturado=faturadoConsultas+faturadoExtra;
+    const gastosFixos=gastosDoMes.filter(g=>g.tipo==='fixa').reduce((s,g)=>s+(Number(g.valor)||0),0);
+    const gastosVariaveis=gastosDoMes.filter(g=>g.tipo!=='fixa').reduce((s,g)=>s+(Number(g.valor)||0),0);
+    const totalGastosM=gastosFixos+gastosVariaveis;
+    const resProj=projecao-totalGastosM;
+    const resReal=faturado-totalGastosM;
+    totProj+=projecao; totFat+=faturado; totFixo+=gastosFixos; totVar+=gastosVariaveis; totResProj+=resProj; totResReal+=resReal;
+    linhas+=`<tr style="border-bottom:1px solid var(--line)">
+      <td style="padding:8px">${meses[m]}</td>
+      <td style="padding:8px">${BRL(projecao)}</td>
+      <td style="padding:8px">${BRL(faturado)}</td>
+      <td style="padding:8px">${BRL(gastosFixos)}</td>
+      <td style="padding:8px">${BRL(gastosVariaveis)}</td>
+      <td style="padding:8px;color:${resProj>=0?'var(--good)':'var(--danger)'}">${BRL(resProj)}</td>
+      <td style="padding:8px;color:${resReal>=0?'var(--good)':'var(--danger)'}">${BRL(resReal)}</td>
+    </tr>`;
+  }
+  document.getElementById('anualTable').innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="text-align:left;border-bottom:2px solid var(--line)">
+      <th style="padding:8px">Mês</th><th style="padding:8px">Projeção</th><th style="padding:8px">Faturado</th><th style="padding:8px">Gastos fixos</th><th style="padding:8px">Gastos variáveis</th><th style="padding:8px">Resultado projetado</th><th style="padding:8px">Resultado real</th>
+    </tr></thead>
+    <tbody>${linhas}
+      <tr style="font-weight:600;border-top:2px solid var(--line)">
+        <td style="padding:8px">Total</td>
+        <td style="padding:8px">${BRL(totProj)}</td>
+        <td style="padding:8px">${BRL(totFat)}</td>
+        <td style="padding:8px">${BRL(totFixo)}</td>
+        <td style="padding:8px">${BRL(totVar)}</td>
+        <td style="padding:8px;color:${totResProj>=0?'var(--good)':'var(--danger)'}">${BRL(totResProj)}</td>
+        <td style="padding:8px;color:${totResReal>=0?'var(--good)':'var(--danger)'}">${BRL(totResReal)}</td>
+      </tr>
+    </tbody>
+  </table>`;
+}
 function openGasto(id){
   const g = id ? gasto(id) : {descricao:'',categoria:'Outros',valor:'',data:new Date().toISOString().slice(0,10)};
   if(id && !g){ toast('Gasto não encontrado.'); return; }
@@ -1831,6 +1908,8 @@ function openGasto(id){
         <div class="field"><label>Data</label><input id="gData" type="date" value="${g.data||''}"></div>
       </div>
       <div class="field"><label>Valor (R$) *</label><input id="gValor" type="number" step="0.01" min="0" value="${g.valor||''}"></div>
+      <div class="field"><label>Tipo</label><select id="gTipo" onchange="toggleGastoRepetir(this)"><option value="variavel" ${(g.tipo||'variavel')==='variavel'?'selected':''}>Variável</option><option value="fixa" ${g.tipo==='fixa'?'selected':''}>Fixa (repete todo mês)</option></select></div>
+      ${!id?'<div class="field" id="gRepetirWrap" style="display:none"><label>Repetir por quantos meses</label><input id="gRepetirMeses" type="number" min="1" max="36" value="12"></div>':''}
     </div>
     <div class="modal-foot">
       ${id?`<button class="btn danger" onclick="delGasto('${id}')" style="margin-right:auto">Excluir</button>`:''}
@@ -1845,10 +1924,19 @@ function saveGasto(id){
   const valor=parseFloat(document.getElementById('gValor').value)||0;
   if(!descricao){ toast('Informe a descrição do gasto.'); return; }
   if(!valor){ toast('Informe o valor do gasto.'); return; }
-  const data={ descricao, categoria:document.getElementById('gCategoria').value, valor, data:document.getElementById('gData').value };
-  if(id){ Object.assign(gasto(id), data); }
-  else{ state.gastos.push(Object.assign({id:uid()}, data)); }
-  save(); closeModal(); render(); toast('Gasto salvo ✓');
+  const tipoEl=document.getElementById('gTipo');
+  const tipo=tipoEl?tipoEl.value:'variavel';
+  const data={ descricao, categoria:document.getElementById('gCategoria').value, valor, data:document.getElementById('gData').value, tipo };
+  if(id){ Object.assign(gasto(id), data); save(); closeModal(); render(); toast('Gasto salvo ✓'); return; }
+  const repetirEl=document.getElementById('gRepetirMeses');
+  const meses=(tipo==='fixa' && repetirEl)? Math.max(1, Math.min(36, parseInt(repetirEl.value)||1)) : 1;
+  let dataAtual=data.data;
+  for(let i=0;i<meses;i++){
+    state.gastos.push(Object.assign({id:uid()}, data, {data:dataAtual}));
+    dataAtual=addMonthsStr(dataAtual,1);
+  }
+  save(); closeModal(); render();
+  toast(meses>1 ? `${meses} gastos criados ✓` : 'Gasto salvo ✓');
 }
 function delGasto(id){
   if(!confirm('Excluir este gasto?')) return;
