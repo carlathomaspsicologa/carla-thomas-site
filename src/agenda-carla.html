@@ -90,6 +90,7 @@
   .empty .big{font-size:30px;margin-bottom:8px}
   /* ---------- Badges ---------- */
   .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap}
+  select.badge{border:none;cursor:pointer;-webkit-appearance:none;appearance:none;padding-right:9px}
   .badge.agendada{background:var(--brand-soft);color:var(--brand-dark)}
   .badge.confirmada{background:var(--good-soft);color:#0a7d0a}
   .badge.realizada{background:#e8eef7;color:#245d9e}
@@ -735,7 +736,7 @@ function htmlAppt(c){
         <div class="who">
           <div class="nm">${pacienteNome(c.pacienteId)}</div>
           <div class="meta">
-            <span class="badge ${c.status}">${STATUS[c.status].label}</span>
+            <select class="badge ${c.status}" onclick="event.stopPropagation()" onchange="setStatus('${c.id}',this.value)">${Object.keys(STATUS).map(s=>`<option value="${s}" ${s===c.status?"selected":""}>${STATUS[s].label}</option>`).join("")}</select>
             <span class="badge ${c.modalidade==='online'?'online':'presencial'}">${c.modalidade==='online'?'Online':'Presencial'}</span>
             <span class="pay ${c.pago?'pago':'pendente'}">${c.pago?'● Pago':'○ A receber'} · ${BRL(valor)}</span>
           </div>
@@ -1458,11 +1459,14 @@ function removerFichaArquivo(id){
   save(); refreshDocumentos(id);
   toast('Anexo removido');
 }
+function setStatus(id,status){
+  const c=state.consultas.find(x=>x.id===id); if(!c) return;
+  c.status=status; save(); render(); toast('Status atualizado ✓');
+}
 function togglePago(id){
   const c=state.consultas.find(x=>x.id===id); if(!c) return;
   c.pago=!c.pago;
   if(c.pago && !c.forma) c.forma='Pix';
-  if(c.pago && c.status!=='realizada' && c.status!=='faltou' && c.status!=='cancelada') c.status='realizada';
   if(c.pago){
     c.notaEmitida=confirm('Nota Receita Saúde já foi emitida para esta sessão?');
   }
