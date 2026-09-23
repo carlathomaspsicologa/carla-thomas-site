@@ -1162,7 +1162,6 @@ function marcarSelecionadasPagas(){
     const c=state.consultas.find(x=>x.id===id); if(!c) return;
     c.pago=true;
     if(!c.forma) c.forma='Pix';
-    if(c.status!=='realizada' && c.status!=='faltou' && c.status!=='cancelada') c.status='realizada';
     c.notaEmitida=notaEmitida;
   });
   finSelecionadas.clear();
