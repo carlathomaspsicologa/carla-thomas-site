@@ -13,11 +13,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% if title %}{{ title }} — Carla Thomas{% else %}Carla Thomas — Psicóloga{% endif %}</title>
 {% if resumo %}<meta name="description" content="{{ resumo }}">{% endif %}
-<link rel="canonical" href="https://carlagabriellethomas.com{{ page.url }}">
+<link rel="canonical" href="https://carlagabriellethomas.com{{ canonical or page.url }}">
 <meta property="og:type" content="{% if categoria %}article{% else %}website{% endif %}">
 <meta property="og:title" content="{% if title %}{{ title }}{% else %}Carla Thomas — Psicóloga{% endif %}">
 {% if resumo %}<meta property="og:description" content="{{ resumo }}">{% endif %}
-<meta property="og:url" content="https://carlagabriellethomas.com{{ page.url }}">
+<meta property="og:url" content="https://carlagabriellethomas.com{{ canonical or page.url }}">
 <meta property="og:image" content="https://carlagabriellethomas.com/assets/img/carla-hero.jpg">
 <meta property="og:locale" content="pt_BR">
 <meta property="og:site_name" content="Carla Thomas — Psicóloga">
