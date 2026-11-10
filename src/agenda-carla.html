@@ -1066,7 +1066,7 @@ function renderFinanceiro(){
     return `<tr>
     <td style="width:30px">${podeSelecionar?`<input type="checkbox" ${finSelecionadas.has(c.id)?'checked':''} onchange="toggleFinSel('${c.id}')" style="width:16px;height:16px">`:''}</td>
     <td>${fmtDateNum(c.data)}<span style="color:var(--muted)"> · ${c.hora}</span></td>
-    <td>${pacienteNome(c.pacienteId)}</td>
+    <td>${pacienteNome(c.pacienteId)}${(p&&p.cpf)?`<div style="font-size:11px;color:var(--muted)">CPF ${escapeHtml(p.cpf)}</div>`:""}</td>
     <td class="hide-sm">${c.pago?(c.forma||'—'):'<span style="color:var(--muted)">—</span>'}</td>
     <td class="hide-sm">${notaBadge}</td>
     <td class="num">${BRL(consultaValor(c))}</td>
@@ -1089,11 +1089,14 @@ function renderFinanceiro(){
   const selArr=[...finSelecionadas].map(id=>state.consultas.find(x=>x.id===id)).filter(Boolean);
   const todasPagas = selArr.length>0 && selArr.every(c=>c.pago);
   const todasPendentes = selArr.length>0 && selArr.every(c=>!c.pago);
+  const pendPacIds=[...new Set(state.consultas.filter(c=>!c.pago && c.status!=="cancelada" && c.data<=today).map(c=>c.pacienteId))];
+  const quickSel = pendPacIds.length? `<select onchange="selecionarPendentesPaciente(this.value);this.value=''" style="font-size:12px;padding:6px 8px;max-width:230px"><option value="">Cobrar várias de um paciente…</option>${pendPacIds.map(id=>{const pp=paciente(id);const n=state.consultas.filter(c=>c.pacienteId===id && !c.pago && c.status!=="cancelada" && c.data<=today).length;return `<option value="${id}">${escapeHtml(pp?pp.nome:"(removido)")} — ${n} pendente(s)</option>`;}).join("")}</select>`:"";
   const bulkBar = idsVisiveis.length? `<div class="row between" style="padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px">
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer">
       <input type="checkbox" ${todasMarcadas?'checked':''} onchange="toggleFinSelAll(this.checked)" style="width:16px;height:16px">
       ${qtdSel?`${qtdSel} selecionada(s) · ${BRL(totalSel)}`:'Selecionar para cobrar ou gerar recibo juntas'}
     </label>
+    ${quickSel}
     ${qtdSel?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       ${todasPendentes?`<button class="btn wa sm" onclick="cobrarSelecionadasWhats()">Cobrar selecionadas (WhatsApp)</button>
       <button class="btn primary sm" onclick="marcarSelecionadasPagas()">Marcar todas como pagas</button>`:''}
@@ -1107,6 +1110,14 @@ function renderFinanceiro(){
     <tfoot><tr><td colspan="5" style="border:0"></td>
       <td class="num" style="border:0;font-weight:700">${BRL(totalFiltro)}</td>
       <td style="border:0"></td></tr></tfoot></table>`;
+}
+function selecionarPendentesPaciente(pid){
+  if(!pid) return;
+  document.getElementById("finMonth").value=""; document.getElementById("finStatus").value="pendente";
+  finSelecionadas.clear();
+  const hoje=todayStr();
+  state.consultas.filter(c=>c.pacienteId===pid && !c.pago && c.status!=="cancelada" && c.data<=hoje).forEach(c=>finSelecionadas.add(c.id));
+  renderFinanceiro();
 }
 function toggleFinSel(id){
   if(finSelecionadas.has(id)) finSelecionadas.delete(id); else finSelecionadas.add(id);
