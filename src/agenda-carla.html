@@ -526,7 +526,7 @@ const PASS_KEY = 'consultorioPsi_senha';
 const DEFAULT_MSG = 'Olá {paciente}! Aqui é {profissional}. Passando para confirmar sua consulta no dia {data} às {hora}. Podemos confirmar? 🙂';
 const DEFAULT_MSG_PAG = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento da sessão do dia {data}, no valor de {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
 const DEFAULT_MSG_LEMBRETE = 'Olá {paciente}! Passando para lembrar da sua consulta amanhã, dia {data} às {hora}. Até lá! {profissional}';
-const DEFAULT_MSG_PAG_MULTI = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento de {qtd} sessões: {lista}. Total: {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
+const DEFAULT_MSG_PAG_MULTI = 'Olá {paciente}! Tudo bem? 🙂 Passando para lembrar do pagamento de {qtd} sessões, dos dias {lista}. Valor total: {valor}. {pix}Se já tiver feito, é só desconsiderar. Obrigada! {profissional}';
 const DEFAULT_MSG_FICHA = 'Olá {paciente}! Tudo bem? 🙂 Segue o link da ficha de cadastro para preencher: {link} Pode me devolver por aqui mesmo (foto ou PDF) quando conseguir. Qualquer dúvida, é só chamar. {profissional}';
 const DEFAULT_MSG_KIT = 'Olá {paciente}! Seja bem-vindo(a)! 🌱 Preparei um kit de boas-vindas com informações importantes para começarmos: {link} Qualquer dúvida, estou por aqui. {profissional}';
 let finSelecionadas = new Set();
@@ -1135,7 +1135,7 @@ function toggleFinSelAll(checked){
 function buildMsgPagMulti(pacienteId, consultasSel){
   const p=paciente(pacienteId);
   const pix=(state.config.chavePix||'').trim();
-  const lista=consultasSel.map(c=>fmtDateNum(c.data)).join(', ');
+  const _ds=consultasSel.map(c=>fmtDateNum(c.data)); const lista=_ds.length>1? _ds.slice(0,-1).join(', ')+' e '+_ds[_ds.length-1] : _ds.join('');
   const total=consultasSel.reduce((s,c)=>s+consultaValor(c),0);
   return (state.config.mensagemPagMulti||DEFAULT_MSG_PAG_MULTI)
     .replaceAll('{paciente}', p? p.nome.split(' ')[0] : '')
