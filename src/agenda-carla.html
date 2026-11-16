@@ -753,7 +753,9 @@ function htmlAppt(c){
         </div>
       </div>`;
 }
-function agSelBar(){ if(!agSelMode) return ''; const n=agSel.size; return `<div class="card pad" style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">${n?n+' consulta(s) selecionada(s)':'Marque as consultas que deseja excluir'}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="agSelAll()">Selecionar todas desta tela</button>${n?`<button class="btn danger sm" onclick="excluirSelecionadasAgenda()">🗑 Excluir selecionadas</button>`:''}<button class="btn ghost sm" onclick="toggleAgSel()">Cancelar</button></span></div>`; }
+function agSelBar(){ if(!agSelMode) return ''; const n=agSel.size; return `<div class="card pad" style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">${n?n+' consulta(s) selecionada(s)':'Marque as consultas que deseja excluir'}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="agSelAll()">Selecionar todas desta tela</button>${n?`<button class="btn sm" onclick="agIncluirSeguintes()">+ Incluir as seguintes do paciente</button><button class="btn danger sm" onclick="excluirSelecionadasAgenda()">🗑 Excluir selecionadas</button>`:''}<button class="btn ghost sm" onclick="toggleAgSel()">Cancelar</button></span></div>`; }
+function delConsultaSeguintes(id){ const c0=state.consultas.find(c=>c.id===id); if(!c0) return; const k=c0.data+c0.hora; const alvo=state.consultas.filter(c=>c.pacienteId===c0.pacienteId && (c.data+c.hora)>=k); if(!confirm('Excluir esta consulta e as seguintes deste paciente ('+alvo.length+' no total)? Esta ação não pode ser desfeita.')) return; const ids=new Set(alvo.map(c=>c.id)); state.consultas=state.consultas.filter(c=>!ids.has(c.id)); save(); closeModal(); render(); toast(alvo.length+' consulta(s) excluída(s)'); }
+function agIncluirSeguintes(){ const base=state.consultas.filter(c=>agSel.has(c.id)); base.forEach(b=>{ state.consultas.forEach(c=>{ if(c.pacienteId===b.pacienteId && (c.data+c.hora)>(b.data+b.hora)) agSel.add(c.id); }); }); renderAgenda(); }
 function toggleAgSel(){ agSelMode=!agSelMode; agSel.clear(); renderAgenda(); }
 function toggleAgItem(id){ if(agSel.has(id)) agSel.delete(id); else agSel.add(id); renderAgenda(); }
 function agSelAll(){ document.querySelectorAll('#agendaList [data-aid]').forEach(e=>agSel.add(e.dataset.aid)); renderAgenda(); }
@@ -2092,7 +2094,7 @@ function openConsulta(id){
       </div>`:''}
     </div>
     <div class="modal-foot">
-      ${id?`<button class="btn danger" onclick="delConsulta('${id}')" style="margin-right:auto">Excluir</button>`:''}
+      ${id?`<button class="btn danger" onclick="delConsultaSeguintes('${id}')" style="margin-right:6px" title="Exclui esta consulta e todas as seguintes deste paciente">Excluir esta e as seguintes</button><button class="btn danger" onclick="delConsulta('${id}')" style="margin-right:auto">Excluir</button>`:''}
       <button class="btn" onclick="closeModal()">Cancelar</button>
       <button class="btn primary" onclick="saveConsulta('${id||''}')">Salvar</button>
     </div>`;
