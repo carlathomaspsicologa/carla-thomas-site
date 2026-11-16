@@ -1100,8 +1100,8 @@ function renderFinanceiro(){
     ${qtdSel?`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       ${todasPendentes?`<button class="btn wa sm" onclick="cobrarSelecionadasWhats()">Cobrar selecionadas (WhatsApp)</button>
       <button class="btn primary sm" onclick="marcarSelecionadasPagas()">Marcar todas como pagas</button>`:''}
-      ${todasPagas?`<button class="btn sm" onclick="imprimirReciboSelecionadas()">🖨 Gerar recibo (selecionadas)</button>`:''}
-      ${!todasPendentes&&!todasPagas?`<span style="font-size:12px;color:var(--muted)">Selecione só pagas (recibo) ou só pendentes (cobrança)</span>`:''}
+      ${selArr.some(c=>c.pago)?`<button class="btn sm" onclick="imprimirReciboSelecionadas()">🖨 Gerar recibo (${selArr.filter(c=>c.pago).length} paga(s))</button>`:''}
+      ${!todasPendentes&&!todasPagas?`<span style="font-size:12px;color:var(--muted)">O recibo inclui só as consultas pagas; a cobrança, só as pendentes</span>`:''}
     </div>`:''}
   </div>`:'';
   tbl.innerHTML=`${bulkBar}<table><thead><tr><th></th><th>Data</th><th>Paciente</th>
@@ -1182,9 +1182,9 @@ function marcarSelecionadasPagas(){
 function imprimirReciboSelecionadas(){
   if(!finSelecionadas.size){ toast('Selecione ao menos uma consulta.'); return; }
   const selecionadas=state.consultas.filter(c=>finSelecionadas.has(c.id));
-  if(!selecionadas.length || !selecionadas.every(c=>c.pago)){ toast('Selecione apenas consultas pagas para gerar recibo.'); return; }
+  const pagas=selecionadas.filter(c=>c.pago); if(!pagas.length){ toast('Marque as consultas como pagas antes de gerar o recibo.'); return; }
   const porPaciente={};
-  selecionadas.forEach(c=>{ (porPaciente[c.pacienteId]=porPaciente[c.pacienteId]||[]).push(c.id); });
+  pagas.forEach(c=>{ (porPaciente[c.pacienteId]=porPaciente[c.pacienteId]||[]).push(c.id); });
   const pacIds=Object.keys(porPaciente);
   pacIds.forEach((pacId,idx)=>{ setTimeout(()=>gerarRecibo(porPaciente[pacId]), idx*400); });
   toast(`Gerando recibo para ${pacIds.length} paciente(s)…`);
