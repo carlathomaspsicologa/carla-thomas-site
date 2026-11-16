@@ -269,6 +269,7 @@
           <button data-range="month">Calendário</button>
           <button data-range="past">Anteriores</button>
         </div>
+        <button class="btn sm" onclick="toggleAgSel()">☑ Selecionar para excluir</button>
         <button class="btn sm" onclick="exportSemanaICS()">⬇ Exportar semana (.ics)</button>
         <button class="btn primary" onclick="openConsulta()">+ Nova consulta</button>
       </div>
@@ -333,6 +334,7 @@
     </div>
     <div class="filters">
       <select id="finMonth" onchange="renderFinanceiro()"></select>
+      <select id="finPac" onchange="renderFinanceiro()"></select>
       <select id="finStatus" onchange="renderFinanceiro()">
         <option value="">Todos os pagamentos</option>
         <option value="pendente">Só pendentes</option>
@@ -530,6 +532,7 @@ const DEFAULT_MSG_PAG_MULTI = 'Olá {paciente}! Tudo bem? 🙂 Passando para lem
 const DEFAULT_MSG_FICHA = 'Olá {paciente}! Tudo bem? 🙂 Segue o link da ficha de cadastro para preencher: {link} Pode me devolver por aqui mesmo (foto ou PDF) quando conseguir. Qualquer dúvida, é só chamar. {profissional}';
 const DEFAULT_MSG_KIT = 'Olá {paciente}! Seja bem-vindo(a)! 🌱 Preparei um kit de boas-vindas com informações importantes para começarmos: {link} Qualquer dúvida, estou por aqui. {profissional}';
 let finSelecionadas = new Set();
+let agSelMode=false, agSel=new Set();
 let state = load();
 function load(){
   try{
@@ -731,8 +734,8 @@ function sortedConsultas(){
 function htmlAppt(c){
   const p=paciente(c.pacienteId);
   const valor=consultaValor(c);
-  return `<div class="appt">
-        <div class="time">${c.hora}</div>
+  return `<div class="appt" data-aid="${c.id}">
+        <div class="time">${agSelMode?`<input type="checkbox" ${agSel.has(c.id)?'checked':''} onclick="event.stopPropagation()" onchange="toggleAgItem('${c.id}')" style="width:18px;height:18px;margin-right:8px;vertical-align:middle">`:''}${c.hora}</div>
         <div class="who">
           <div class="nm">${pacienteNome(c.pacienteId)}</div>
           <div class="meta">
@@ -750,6 +753,11 @@ function htmlAppt(c){
         </div>
       </div>`;
 }
+function agSelBar(){ if(!agSelMode) return ''; const n=agSel.size; return `<div class="card pad" style="margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><span style="font-size:13px;font-weight:600">${n?n+' consulta(s) selecionada(s)':'Marque as consultas que deseja excluir'}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" onclick="agSelAll()">Selecionar todas desta tela</button>${n?`<button class="btn danger sm" onclick="excluirSelecionadasAgenda()">🗑 Excluir selecionadas</button>`:''}<button class="btn ghost sm" onclick="toggleAgSel()">Cancelar</button></span></div>`; }
+function toggleAgSel(){ agSelMode=!agSelMode; agSel.clear(); renderAgenda(); }
+function toggleAgItem(id){ if(agSel.has(id)) agSel.delete(id); else agSel.add(id); renderAgenda(); }
+function agSelAll(){ document.querySelectorAll('#agendaList [data-aid]').forEach(e=>agSel.add(e.dataset.aid)); renderAgenda(); }
+function excluirSelecionadasAgenda(){ if(!agSel.size) return; const n=agSel.size; if(!confirm('Excluir '+n+' consulta(s)? Esta ação não pode ser desfeita.')) return; state.consultas=state.consultas.filter(c=>!agSel.has(c.id)); agSel.clear(); agSelMode=false; save(); render(); toast(n+' consulta(s) excluída(s)'); }
 function htmlListaPorDias(dates){
   if(!dates.length) return `<div class="card"><div class="empty">Nenhuma consulta neste período.</div></div>`;
   const today=todayStr();
@@ -828,7 +836,7 @@ function renderAgenda(){
       </div>`
     : '';
   if(agendaRange==='month'){
-    list.innerHTML = banner + calendarioHtml();
+    list.innerHTML = banner + agSelBar() + calendarioHtml();
     return;
   }
   let dates;
@@ -847,7 +855,7 @@ function renderAgenda(){
       <button class="btn primary" style="margin-top:14px" onclick="openConsulta()">Agendar primeira consulta</button></div></div>`;
     return;
   }
-  list.innerHTML = banner + htmlListaPorDias(dates);
+  list.innerHTML = banner + agSelBar() + htmlListaPorDias(dates);
 }
 function exportSemanaICS(){
   const now=new Date(); const end=new Date(); end.setDate(now.getDate()+7);
@@ -1034,6 +1042,7 @@ function renderFinanceiro(){
     return `<option value="${m}" ${m===cur&&monthSel.value?'selected':''}>${lbl}</option>`;
   }).join('');
   monthSel.value = monthSel.value || '';
+  { const fpEl=document.getElementById('finPac'); const fpPrev=fpEl.value; fpEl.innerHTML='<option value="">Todos os pacientes</option>'+[...state.pacientes].sort((a,b)=>(a.nome||'').localeCompare(b.nome||'')).map(p=>'<option value="'+p.id+'">'+escapeHtml(p.nome||'')+'</option>').join(''); fpEl.value=fpPrev; }
   // stats gerais
   const realizadasOuPass = state.consultas.filter(c=>c.status!=='cancelada');
   const recebido = state.consultas.filter(c=>c.pago).reduce((s,c)=>s+consultaValor(c),0);
@@ -1054,6 +1063,7 @@ function renderFinanceiro(){
   if(fMonth) items=items.filter(c=>c.data.slice(0,7)===fMonth);
   if(fStatus==='pago') items=items.filter(c=>c.pago);
   if(fStatus==='pendente') items=items.filter(c=>!c.pago);
+  { const _fp=document.getElementById('finPac'); if(_fp&&_fp.value) items=items.filter(c=>String(c.pacienteId)===_fp.value); }
   const tbl=document.getElementById('finTable');
   if(!items.length){ tbl.innerHTML=`<div class="empty" style="padding:34px">Nenhum lançamento com esse filtro.</div>`; return; }
   const rows=items.map(c=>{
@@ -1113,7 +1123,7 @@ function renderFinanceiro(){
 }
 function selecionarPendentesPaciente(pid){
   if(!pid) return;
-  document.getElementById("finMonth").value=""; document.getElementById("finStatus").value="pendente";
+  document.getElementById("finMonth").value=""; document.getElementById("finStatus").value="pendente"; document.getElementById("finPac").value=pid;
   finSelecionadas.clear();
   const hoje=todayStr();
   state.consultas.filter(c=>c.pacienteId===pid && !c.pago && c.status!=="cancelada" && c.data<=hoje).forEach(c=>finSelecionadas.add(c.id));
@@ -1129,6 +1139,7 @@ function toggleFinSelAll(checked){
   if(fMonth) items=items.filter(c=>c.data.slice(0,7)===fMonth);
   if(fStatus==='pago') items=items.filter(c=>c.pago);
   if(fStatus==='pendente') items=items.filter(c=>!c.pago);
+  { const _fp=document.getElementById('finPac'); if(_fp&&_fp.value) items=items.filter(c=>String(c.pacienteId)===_fp.value); }
   items.forEach(c=>{ if(checked) finSelecionadas.add(c.id); else finSelecionadas.delete(c.id); });
   renderFinanceiro();
 }
@@ -1210,6 +1221,7 @@ function exportFinanceiroCSV(){
   if(fMonth) items=items.filter(c=>c.data.slice(0,7)===fMonth);
   if(fStatus==='pago') items=items.filter(c=>c.pago);
   if(fStatus==='pendente') items=items.filter(c=>!c.pago);
+  { const _fp=document.getElementById('finPac'); if(_fp&&_fp.value) items=items.filter(c=>String(c.pacienteId)===_fp.value); }
   if(!items.length){ toast('Nenhum lançamento para exportar com esse filtro.'); return; }
   const header=['Data','Hora','Paciente','CPF','Forma de pagamento','Situação','Nota Receita Saúde','Valor (R$)'];
   const linhas=items.map(c=>{
